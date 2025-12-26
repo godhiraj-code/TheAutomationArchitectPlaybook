@@ -300,6 +300,11 @@
                 <td>Reports stakeholders can understand</td>
                 <td>Reporting</td>
             </tr>
+            <tr>
+                <td><strong>The Sentinel</strong></td>
+                <td>Autonomous agentic orchestration</td>
+                <td>Orchestration</td>
+            </tr>
         </tbody>
     </table>
     <h2 id="how-to-use-this-book">How to Use This Book</h2>
@@ -479,6 +484,8 @@ pip install selenium pytest requests
                             class="toc-chapter-link"><span class="toc-chapter-num">22.</span> Legacy Lessons</a></li>
                     <li class="toc-chapter-item"><a href="#chapter-23-ai-powered-testing" class="toc-chapter-link"><span
                                 class="toc-chapter-num">23.</span> AI-Powered Testing</a></li>
+                    <li class="toc-chapter-item"><a href="#chapter-24-the-sentinel-autonomous-agents"
+                            class="toc-chapter-link"><span class="toc-chapter-num">24.</span> The Sentinel</a></li>
                 </ul>
             </div>
         </div>
@@ -1410,10 +1417,11 @@ def get_pending_requests(driver):
     <h3 id="the-core-philosophy">The Core Philosophy</h3>
     <p>Traditional approaches ask: <em>"What should I wait for?"</em></p>
     <p>Waitless asks: <em>"What signals indicate the page is stable?"</em></p>
-    <p><strong>The three signals of stability:</strong>
+    <p><strong>The four signals of stability:</strong>
         1. <strong>DOM settled</strong> — No elements being added/removed/modified
         2. <strong>Network idle</strong> — No pending HTTP requests
-        3. <strong>Animations complete</strong> — No CSS or JavaScript animations running</p>
+        3. <strong>Animations complete</strong> — No CSS or JavaScript animations running
+        4. <strong>Shadow Elements detected</strong> — Full support for encapsulated Shadow DOM stability</p>
     <p>When all three are true, the page is ready for interaction.</p>
     <hr />
     <h2 id="the-architecture">🔍 Deep Dive: The Waitless Architecture</h2>
@@ -1467,7 +1475,8 @@ driver.find_element(By.ID, &quot;dynamic-button&quot;).click()  # Stable!
 driver.find_element(By.ID, &quot;ajax-loaded-element&quot;).send_keys(&quot;text&quot;)  # Stable!
 </code></pre>
     <p><strong>That's it.</strong> No explicit waits. No sleep statements. The driver automatically waits for stability
-        before every action.</p>
+        before every action. <strong>New in v0.3.0+:</strong> Waitless now natively supports <strong>Shadow
+            DOM</strong>, ensuring stability even within encapsulated web components without extra configuration.</p>
     <hr />
     <h2 id="deep-dive-how-each-component-works">🔍 Deep Dive: How Each Component Works</h2>
     <h3 id="component-1-dom-mutation-observer">Component 1: DOM Mutation Observer</h3>
@@ -4443,85 +4452,68 @@ def with_recovery(max_retries=3):
     return decorator
 </code></pre>
     <hr />
-    <h1 id="chapter-23-ai-powered-testing">Chapter 23: AI-Powered Testing - The Future is Now</h1>
+    <h1 id="chapter-23-ai-powered-testing">Chapter 23: AI-Powered Testing - Privacy-First & Local SLMs</h1>
     <p style="text-align: center; margin: 2rem 0;">
         <img src="assets/images/ai.png" alt="AI Powered Testing"
             style="max-width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);" />
     </p>
-    <h2 id="the-ai-revolution-in-test-automation">The AI Revolution in Test Automation</h2>
-    <p>Artificial Intelligence is fundamentally transforming how we approach test automation. From self-healing locators
-        to intelligent test generation, AI is solving problems that seemed impossible just a few years ago.</p>
+    <h2 id="the-shift-to-local-intelligence">The Shift to Local Intelligence</h2>
+    <p>While cloud-based APIs like OpenAI's GPT-4 kickstarted the AI revolution, the future of enterprise test
+        automation lies in <strong>Local Small Language Models (SLMs)</strong>. Organizations are increasingly blocking
+        cloud AI due to security, privacy, and cost concerns. Running models like <strong>Llama-3 (8B)</strong> or
+        <strong>Phi-3</strong> locally ensures that your proprietary application code and sensitive test data never
+        leave your infrastructure.
+    </p>
 
-    <h3 id="why-ai-matters-for-testers">Why AI Matters for Testers</h3>
-    <p>Traditional automation faces three persistent challenges:</p>
+    <h3 id="why-local-slms-matter">Why Local SLMs for Enterprise</h3>
     <ul>
-        <li><strong>Brittle Locators</strong> — A single UI change breaks dozens of tests</li>
-        <li><strong>Maintenance Overhead</strong> — 40% of automation time goes to fixing existing tests</li>
-        <li><strong>Limited Coverage</strong> — Manual creation of test scenarios misses edge cases</li>
+        <li><strong>Data Privacy</strong> — Zero data leakage; everything stays on-premise.</li>
+        <li><strong>Predictable Performance</strong> — No network latency or API downtime.</li>
+        <li><strong>Cost Efficiency</strong> — No per-token billing; run unlimited inferences on existing hardware
+            (8GB-16GB RAM).</li>
+        <li><strong>Customization</strong> — Easy to fine-tune on your specific codebase or domain language.</li>
     </ul>
-    <p>AI addresses all three by introducing <strong>adaptive intelligence</strong> into the testing pipeline.</p>
 
     <hr />
-    <h2 id="self-healing-locators">Self-Healing Locators with AI</h2>
-    <p>When a locator fails, instead of failing the test immediately, AI can analyze the page and find the correct
-        element automatically.</p>
+    <h2 id="self-healing-locators">Self-Healing Locators with Local SLMs</h2>
+    <p>When a locator fails, instead of failing the test immediately, we can use a local model to analyze the page state
+        and find the correct element without sending HTML to the cloud.</p>
 
-    <h3 id="how-self-healing-works">🔍 Deep Dive: The Mechanics of Self-Healing</h3>
+    <h3 id="how-self-healing-works">🔍 Deep Dive: Local Inference for Healing</h3>
     <pre><code class="language-python">from selenium.webdriver.common.by import By
-import openai
+import requests # Using a local Ollama server
 
-class SelfHealingLocator:
-    def __init__(self, driver):
+class LocalHealingLocator:
+    def __init__(self, driver, model="llama3:8b"):
         self.driver = driver
-        self.healing_cache = {}
+        self.model = model
+        self.api_url = "http://localhost:11434/api/generate"
     
-    def find_element(self, locator, element_description):
-        """
-        Attempts to find element. If primary locator fails,
-        uses AI to discover a new working selector.
-        """
+    def find_element(self, locator, description):
         try:
             return self.driver.find_element(*locator)
         except NoSuchElementException:
-            return self._heal_and_find(locator, element_description)
+            return self._heal_with_local_slm(locator, description)
     
-    def _heal_and_find(self, failed_locator, description):
-        # Get surrounding HTML context
-        page_source = self.driver.page_source
+    def _heal_with_local_slm(self, failed_locator, description):
+        # Extract small, relevant DOM context to stay within local RAM limits
+        context = self.driver.execute_script("return document.body.innerText.substring(0, 2000)")
         
-        # Ask AI for alternative selector
-        prompt = f"""
-        The locator {failed_locator} failed to find the element.
-        Element description: {description}
+        prompt = f"Failed Locator: {failed_locator}\nGoal: Find '{description}'\nContext: {context}\nReturn only a valid CSS selector."
         
-        Here is the page HTML (truncated):
-        {page_source[:5000]}
+        response = requests.post(self.api_url, json={
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False
+        })
         
-        Suggest 3 alternative CSS selectors that would locate this element.
-        Return only the selectors, one per line.
-        """
-        
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        
-        # Try each suggested selector
-        suggestions = response.choices[0].message.content.strip().split('\n')
-        for selector in suggestions:
-            try:
-                element = self.driver.find_element(By.CSS_SELECTOR, selector.strip())
-                self.healing_cache[failed_locator] = selector.strip()
-                return element
-            except:
-                continue
-        
-        raise NoSuchElementException(f"Could not heal locator: {failed_locator}")
+        suggested_selector = response.json()['response'].strip()
+        return self.driver.find_element(By.CSS_SELECTOR, suggested_selector)
 </code></pre>
 
-    <h3 id="key-insight-ai-healing">💡 Key Insight: Healing Should Be Logged</h3>
-    <p>Always log when AI heals a locator. This creates a backlog of locators that need human review, preventing silent
-        technical debt accumulation.</p>
+    <h3 id="key-insight-small-context">💡 Key Insight: Pruning is Performance</h3>
+    <p>Local SLMs have limited context windows. Instead of sending the entire `page_source`, send only relevant chunks
+        (summaries or localized DOM sections) to maintain high accuracy on 8GB VRAM hardware.</p>
 
     <hr />
     <h2 id="ai-test-generation">AI-Powered Test Generation</h2>
@@ -4607,11 +4599,13 @@ test_cases = generate_test_cases(user_story)
     </table>
 
     <hr />
-    <h2 id="testing-llm-applications">Testing LLM Applications</h2>
-    <p>When your application <em>uses</em> AI, testing becomes complex. How do you test non-deterministic outputs?</p>
+    <h2 id="testing-llm-applications">Testing LLM Applications Locally</h2>
+    <p>When your application <em>uses</em> AI, testing becomes complex. How do you test non-deterministic outputs
+        without blowing your budget?</p>
 
-    <h3 id="pytest-mockllm-approach">The Pytest-MockLLM Approach</h3>
-    <p>Instead of calling real LLMs during tests (expensive, slow, non-deterministic), use recorded responses:</p>
+    <h3 id="local-mocking-approach">The Local Model Orchestration</h3>
+    <p>Instead of calling real external LLMs (expensive, slow), use <strong>pytest-mockllm</strong> with a local SLM
+        backbone to simulate edge-case responses:</p>
     <pre><code class="language-python">import pytest
 from pytest_mockllm import mock_openai
 
@@ -4701,6 +4695,66 @@ def test_streaming_chatbot():
     <blockquote>
         <p><em>"AI doesn't replace testers—it makes good testers exceptional and eliminates the tedious parts of the
                 job."</em></p>
+    </blockquote>
+
+    <hr />
+    <h1 id="chapter-24-the-sentinel-autonomous-agents">Chapter 24: The Sentinel - Toward Fully Autonomous Quality Agents
+    </h1>
+    <p>The previous 23 chapters have focused on individual tools: <strong>Waitless</strong> for stability, <strong>SB
+            Stealth</strong> for evasion, <strong>Visual Guard</strong> for perception, and <strong>Selector
+            Scout</strong> for intelligence. But in a modern enterprise environment, these tools shouldn't act in
+        isolation. They need a "brain."</p>
+
+    <h2 id="the-vision-of-the-sentinel">The Vision of the Sentinel</h2>
+    <p><strong>The Sentinel</strong> is the proposed master orchestrator that ties all these components into a single,
+        unified agentic system. It doesn't just "run tests"; it governs the quality lifecycle autonomously.</p>
+
+    <h3 id="the-sentinel-architecture">The Sentinel Architecture</h3>
+    <p style="text-align: center; margin: 2rem 0;">
+    <pre><code>
+┌─────────────────────────────────────────────────────────┐
+│                    SENTINEL ORCHESTRATOR                │
+│             (The Master Agentic Controller)             │
+└───────────────┬───────────────┬───────────────┬─────────┘
+                │               │               │
+        ┌───────▼───────┐ ┌─────▼─────┐ ┌───────▼───────┐
+        │   STABILITY   │ │   STEALTH   │ │  PERCEPTION   │
+        │  (Waitless)   │ │(SB Stealth) │ │(Visual Guard) │
+        └───────┬───────┘ └─────┬─────┘ └───────┬───────┘
+                │               │               │
+        ┌───────▼───────┴───────▼───────────────▼───────┐
+        │            LOCAL SLM BRAIN (Llama-3)          │
+        │    (Reasoning, Healing, Decision Making)      │
+        └───────────────────────────────────────────────┘
+        </code></pre>
+    </p>
+
+    <h3 id="agentic-feedback-loops">The Agentic Feedback Loop</h3>
+    <p>The Sentinel operates on a continuous loop of <strong>Observe → Orient → Decide → Act</strong>:</p>
+    <ol>
+        <li><strong>Observe</strong>: Uses <em>Visual Guard</em> and <em>Waitless</em> signals to understand the current
+            page state.</li>
+        <li><strong>Orient</strong>: Cross-references the state with historical logs and requirements using a <em>Local
+                SLM</em>.</li>
+        <li><strong>Decide</strong>: Determines if a failure is a real bug, a flaky environment issue, or a legitimate
+            UI change.</li>
+        <li><strong>Act</strong>: Triggers a <em>Selenium Teleport</em> to reset state, applies a self-healing locator,
+            or raises a high-confidence defect.</li>
+    </ol>
+
+    <h3 id="key-insight-unified-intelligence">💡 Key Insight: The Glue is Everything</h3>
+    <p>The power of the Sentinel isn't in any single tool, but in the <strong>glue</strong> that connects them. When
+        stability signals from Waitless inform the reasoning of the SLM, you move from "Automated Testing" to
+        "Autonomous Quality Assurance."</p>
+
+    <h2 id="future-proofing-your-career">Future-Proofing Your Career</h2>
+    <p>As an Automation Architect, your role is evolving from "Script Writer" to "Agent Orchestrator." By mastering the
+        tools in this playbook and understanding how to unify them under a Sentinel-style framework, you are positioning
+        yourself at the absolute forefront of the industry.</p>
+
+    <blockquote>
+        <p><em>"The ultimate goal of automation isn't to run tests faster—it's to create systems that can think, adapt,
+                and protect the application with minimal human intervention."</em></p>
     </blockquote>
 
     <hr />
