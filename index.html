@@ -486,6 +486,9 @@ pip install selenium pytest requests
                                 class="toc-chapter-num">23.</span> AI-Powered Testing</a></li>
                     <li class="toc-chapter-item"><a href="#chapter-24-the-sentinel-autonomous-agents"
                             class="toc-chapter-link"><span class="toc-chapter-num">24.</span> The Sentinel</a></li>
+                    <li class="toc-chapter-item"><a href="#chapter-25-constellation-based-automation"
+                            class="toc-chapter-link"><span class="toc-chapter-num">25.</span> Constellation Based
+                            Automation</a></li>
                 </ul>
             </div>
         </div>
@@ -4756,6 +4759,231 @@ def test_streaming_chatbot():
         <p><em>"The ultimate goal of automation isn't to run tests faster—it's to create systems that can think, adapt,
                 and protect the application with minimal human intervention."</em></p>
     </blockquote>
+
+    <hr />
+    <h1 id="chapter-25-constellation-based-automation">Chapter 25: Constellation Based Automation - The Milky Way
+        Strategy</h1>
+    <p>Traditional test automation focuses on the <strong>ground</strong>: selectors, waits, and handling every possible
+        UI obstacle. But what if we could navigate like a dung beetle—by looking at the <strong>stars</strong>?</p>
+
+    <h2 id="the-biological-inspiration">The Biological Inspiration: The Dung Beetle's Secret</h2>
+    <p>There is a species of dung beetle that can navigate thousands of miles in a perfectly straight line. It doesn't
+        have a map. It doesn't know where every rock or hole is. It simply <strong>looks up at the Milky Way</strong>.
+        By orienting itself to a "Universal Constant" that never changes, it can overcome any obstacle on the ground
+        without getting lost.</p>
+    <p>This biological insight is the foundation of <strong>Constellation Based Automation (CBA)</strong>.</p>
+
+    <blockquote>
+        <p><em>"Don't look at the ground; look at the Starlight."</em></p>
+    </blockquote>
+
+    <h2 id="why-page-object-model-is-dying">Why the Page Object Model is Dying</h2>
+    <p>The Page Object Model (POM) was built for a simpler web. Today's web is chaotic, asynchronous, and filled with
+        "Noise"—popups, overlays, dynamic content, and A/B tests. In a typical POM setup, the test script is a
+        <strong>micro-manager</strong>. It spends 90% of its time on environment maintenance rather than business logic:
+    </p>
+    <pre><code class="language-javascript">// Traditional POM: Micro-managing the environment
+if (popup.isDisplayed()) {
+    popup.close();
+}
+if (banner.isDisplayed()) {
+    banner.dismiss();
+}
+await page.waitForSpinner();
+await checkoutButton.click();
+</code></pre>
+    <p>The test's <em>intent</em> is a single line: "click checkout." But it's buried under environment noise handling.
+    </p>
+
+    <h2 id="cba-philosophy">The CBA Philosophy: Separating Animal from Environment</h2>
+    <p>CBA introduces a philosophical shift: <strong>separate the "Animal" (your test's intent) from the "Environment"
+            (the DOM noise)</strong>. The environment is managed by <strong>Sentinels</strong>—specialized,
+        language-agnostic agents that clear the path so your test can focus on business logic.</p>
+
+    <h3 id="hub-sentinel-architecture">The Hub & Sentinel Architecture</h3>
+    <p>Instead of a monolithic library, CBA uses a <strong>Sidecar Architecture</strong> communicating over a JSON-RPC
+        message bus (WebSockets):</p>
+    <pre><code>
+┌───────────────────────────────────────────────────────────────────────────┐
+│                           THE STARLIGHT PROTOCOL                           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    HUB (The Flight Controller / Node.js)                  │
+│     Owns the browser • Broadcasts Starlight (DOM mutations, network)     │
+└────────────┬──────────────────┬──────────────────┬───────────────────────┘
+             │                  │                  │
+     ┌───────▼────────┐  ┌──────▼──────┐  ┌────────▼────────┐
+     │   JANITOR      │  │   WAITER    │  │   HISTORIAN     │
+     │   (Python/AI)  │  │    (Go)     │  │   (Node.js)     │
+     │ Clears popups  │  │  Network    │  │ State & Auth    │
+     │   & overlays   │  │   Pulse     │  │  Persistence    │
+     └────────────────┘  └─────────────┘  └─────────────────┘
+</code></pre>
+
+    <h3 id="sentinel-roles">Sentinel Roles</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Sentinel</th>
+                <th>Language</th>
+                <th>Responsibility</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>The Hub</strong></td>
+                <td>Node.js</td>
+                <td>Owns the browser, broadcasts "Starlight" (DOM mutations, network pulses)</td>
+            </tr>
+            <tr>
+                <td><strong>The Janitor</strong></td>
+                <td>Python/AI</td>
+                <td>Watches for popups and overlays, clearing them before the main script knows they existed</td>
+            </tr>
+            <tr>
+                <td><strong>The Waiter</strong></td>
+                <td>Go</td>
+                <td>Monitors the "Network Pulse" to prevent actions during instability</td>
+            </tr>
+            <tr>
+                <td><strong>The Historian</strong></td>
+                <td>Node.js</td>
+                <td>Manages the "State Constellation" (auth tokens and session persistence)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="starlight-protocol">The Starlight Protocol (v2.0)</h2>
+    <p>The Hub and Sentinels communicate using <strong>JSON-RPC 2.0</strong> standardized signals:</p>
+    <pre><code class="language-json">{
+  "jsonrpc": "2.0",
+  "method": "starlight.[action]",
+  "params": { ... },
+  "id": "unique-id"
+}
+</code></pre>
+
+    <h3 id="protocol-methods">Protocol Methods</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Purpose</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>starlight.registration</code></td>
+                <td>Sentinel announces itself to the Hub</td>
+            </tr>
+            <tr>
+                <td><code>starlight.pre_check</code></td>
+                <td>Hub asks Sentinels: "Is the path clear?"</td>
+            </tr>
+            <tr>
+                <td><code>starlight.hijack</code></td>
+                <td>Sentinel takes control to clear an obstacle</td>
+            </tr>
+            <tr>
+                <td><code>starlight.resume</code></td>
+                <td>Sentinel returns control after clearing</td>
+            </tr>
+            <tr>
+                <td><code>starlight.pulse</code></td>
+                <td>Continuous network/DOM state signals</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 id="starlight-speed-limit">The Starlight Speed Limit</h3>
+    <p>The Hub enforces a <strong>200ms handshake budget</strong>. If a Sentinel doesn't respond to a
+        <code>PRE_CHECK</code> within this window, the Hub proceeds without waiting. This ensures high-performance
+        automation while allowing for defensive recovery.</p>
+
+    <h2 id="cba-in-action">CBA in Action: Pure Intent</h2>
+    <p>With CBA, your test code becomes pure business intent:</p>
+    <pre><code class="language-javascript">// Intent Layer: Pure and simple
+await navigation.to("/checkout");
+// The Janitor Sentinel clears the "10% Off" popup automatically in the background
+await checkout.submit();
+</code></pre>
+    <p>No <code>if (popup.isDisplayed())</code>. No <code>waitForSpinner()</code>. The Sentinels handle the noise so
+        your test can focus on the goal.</p>
+
+    <h2 id="hero-story-reporting">Hero Story Reporting</h2>
+    <p>CBA doesn't just say "Pass." It generates a <strong>Hero Story</strong>—a visual timeline that distinguishes
+        between:</p>
+    <ul>
+        <li><strong>The Intent Path</strong>: What your test was trying to accomplish</li>
+        <li><strong>Sentinel Interventions</strong>: The proactive corrections made behind the scenes</li>
+    </ul>
+    <p>Every execution generates a <code>report.html</code> with:</p>
+    <ul>
+        <li><strong>Timeline</strong>: Integrated history of user intents and sentinel interventions</li>
+        <li><strong>Evidence</strong>: Screenshots of every HIJACK event (the "Before" and "After" of path clearing)
+        </li>
+        <li><strong>Status</strong>: Live heartbeat monitoring of system health</li>
+    </ul>
+
+    <h2 id="why-cba-unique">Why CBA is Unique</h2>
+    <ol>
+        <li><strong>Language-Agnostic</strong>: The Hub is Node.js, but your Janitor can be C++, and your Data layer can
+            be Python. They just need to talk JSON.</li>
+        <li><strong>Non-Linear</strong>: Your test script doesn't have <code>if (popup) { click }</code>. It assumes the
+            environment is being filtered for noise.</li>
+        <li><strong>Maintenance-Free</strong>: When a developer adds a new "Newsletter Popup," you don't update 100 test
+            scripts; you just update the Janitor Sentinel.</li>
+    </ol>
+
+    <h2 id="getting-started-cba">Getting Started with CBA</h2>
+    <h3 id="prerequisites-cba">Prerequisites</h3>
+    <ul>
+        <li>Node.js (v18+)</li>
+        <li>Python (3.9+)</li>
+        <li>Playwright</li>
+    </ul>
+    <h3 id="installation-cba">Installation</h3>
+    <pre><code class="language-bash"># Clone the repository
+git clone https://github.com/godhiraj-code/cba.git
+cd cba
+
+# Install Node dependencies
+npm install ws playwright nanoid
+npx playwright install chromium
+
+# Install Python dependencies
+pip install websockets
+</code></pre>
+    <h3 id="running-cba">Running the Framework</h3>
+    <pre><code class="language-bash"># 1. Start the Hub
+node src/hub.js
+
+# 2. Start the Janitor (Background)
+python sentinels/janitor.py
+
+# 3. Run the Intent Script
+node src/intent.js
+</code></pre>
+
+    <h3 id="key-insight-stars">💡 Key Insight: Navigate by the Stars</h3>
+    <p>Stop building scripts that are afraid of the ground. Build a system that navigates by the stars. When your tests
+        orient toward <strong>universal constants</strong> (business intent) rather than <strong>transient
+            obstacles</strong> (popups, spinners, network delays), they become truly resilient.</p>
+
+    <blockquote>
+        <p><em>"The dung beetle doesn't memorize the location of every rock. It trusts the Milky Way. Your automation
+                should do the same."</em></p>
+    </blockquote>
+
+    <h2 id="cba-resources">Resources</h2>
+    <ul>
+        <li><strong>GitHub</strong>: <a href="https://github.com/godhiraj-code/cba"
+                target="_blank">github.com/godhiraj-code/cba</a></li>
+        <li><strong>Blog</strong>: <a
+                href="https://www.dhirajdas.dev/blog/constellation-based-automation-starlight-protocol"
+                target="_blank">Constellation Based Automation: The Milky Way Strategy</a></li>
+    </ul>
 
     <hr />
     <h1 id="appendices">APPENDICES</h1>
