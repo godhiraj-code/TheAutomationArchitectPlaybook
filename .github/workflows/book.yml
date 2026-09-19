@@ -1,0 +1,29 @@
+name: Book integrity and build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  book:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check Markdown and HTML integrity
+        run: python scripts/book.py check
+      - name: Refuse source and non-empty output directories
+        run: |
+          if python scripts/book.py build --output assets; then exit 1; fi
+          mkdir -p /tmp/playbook-non-empty
+          touch /tmp/playbook-non-empty/keep
+          if python scripts/book.py build --output /tmp/playbook-non-empty; then exit 1; fi
+          test -f assets/images/cover.png
+          test -f /tmp/playbook-non-empty/keep
+      - name: Verify reproducible static-site build
+        run: |
+          python scripts/book.py build --output /tmp/playbook-build-a
+          python scripts/book.py build --output /tmp/playbook-build-b
+          diff -qr /tmp/playbook-build-a /tmp/playbook-build-b
