@@ -1,166 +1,98 @@
-﻿# The Automation Architect's Playbook
+<!-- Generated from book_final.html by scripts/generate-book-markdown.mjs. Edit the HTML source. -->
+
+# The Automation Architect's Playbook
+
 ## A Comprehensive Guide to Building Enterprise-Grade Test Automation
 
 ### Mastering the Internals: From Browser Fundamentals to AI-Powered Testing
 
 ---
 
-**By Dhiraj Das**  
-*Automation Solutions Architect | 10+ Years Experience*  
-*Co-Author of the TDCT Algorithm | Open-Source Contributor*
+*This book represents years of practical experience solving real automation challenges. The tools, patterns, and approaches described have been deployed and refined through countless iterations.*
+
+![The Automation Architect's Playbook Cover](assets/images/cover.png)
 
 ---
 
 # Preface
 
-## Who This Book Is For
+## Who this book is for
 
-This book is written for **everyone who wants to truly understand test automation**, not just copy-paste code that works "sometimes." Whether you're:
+This playbook is for engineers moving from individual test scripts to dependable automation systems. You should be comfortable reading Python and basic HTML. If you are new to browser automation, start with the setup guide and Chapters 1–2; if you own a framework, begin with Chapters 17–18.
 
-- **Junior QA Engineers** starting your automation journey and wanting to understand *why* things work, not just *how*
-- **Mid-Level Automation Developers** looking to level up and eliminate those mysterious flaky tests
-- **Senior QA Engineers** designing enterprise-scale frameworks
-- **Automation Architects** responsible for technical decisions that affect entire organizations
-- **Developers** who want to understand testing from the inside out
-- **DevOps Engineers** integrating test automation into CI/CD pipelines
+The central question is simple: **what evidence would convince you that the system did the right thing?** A green test, a quiet network, or a confident model response is only a signal. Good architecture connects those signals to an observable outcome.
 
-If you've ever wondered:
-- *"Why does my test pass locally but fail in CI?"*
-- *"What is the browser actually doing when I call `click()`?"*
-- *"Why can't Selenium find an element that's clearly on the page?"*
-- *"How do websites detect that I'm using automation?"*
+## Read around a problem
 
-This book will give you those answers—and more.
+| Your problem | Read next | Leave with |
+| --- | --- | --- |
+| Tests pass locally and fail in CI | Chapters 1–3, then 18 | A failure classification and a reproducible waiting condition |
+| UI changes keep breaking the suite | Chapters 4, 9–11, and 15 | Locator contracts and assertions that detect meaningful regressions |
+| Your framework is expensive to maintain | Chapters 5–6 and 17–20 | A layering decision, isolated test data, and a measured execution budget |
+| You are adding AI or autonomous tools | Chapters 12–13 and 23–25 | Separate integration tests, model evaluations, and agent execution checks |
 
-## What Makes This Book Different
+## How to use the examples
 
-Unlike theoretical automation guides that show you the happy path, **every chapter in this book is born from real production failures**. These aren't academic exercises—they're battle-tested solutions that have been deployed in enterprise environments handling:
+Each chapter starts with an outcome and a practical checkpoint. Code fragments explain a technique; they are not a complete application or a promise of compatibility with every package version. Supply your own fixtures, URLs, credentials, and teardown. Check the linked project documentation, pin the versions you validate, and run examples in a disposable test environment.
 
-- 1000+ automated tests running daily
-- 20+ microservices under test
-- Multi-browser, multi-device coverage
-- CI/CD integration with sub-10-minute feedback loops
-- Applications protected by Cloudflare, bot detection, and modern security
+The tools illustrate design decisions. Compare their behavior with the standard capabilities of your test framework before adding another dependency. Chapters 24–25 describe proposed architectures, with explicit limits and validation criteria.
 
-### The Philosophy Behind This Work
+## Three principles
 
-**"Automation should be invisible."**
-
-When automation works perfectly, nobody notices. When it fails, everyone suffers. The goal isn't to write tests—it's to create a safety net that catches defects before they reach production while staying out of everyone's way.
-
-This book embraces three core principles:
-
-1. **Stability Over Speed**: A reliable slow test beats a fast flaky one
-2. **Maintenance Minimization**: Code that doesn't need fixing is the best code
-3. **Actionable Feedback**: When things break, the cause should be obvious
-
-### The Tools You'll Master
-
-Throughout this book, you'll learn to use a suite of specialized open-source tools, each designed to solve a specific "unsolvable" problem:
-
-| Tool | Problem It Solves | Category |
-|------|-------------------|----------|
-| **Waitless** | Flaky tests from race conditions | Stability |
-| **Project Vandal** | Tests that pass but don't catch bugs | Mutation Testing |
-| **Selenium Teleport** | 10+ seconds per login | Authentication |
-| **SB Stealth Wrapper** | Bot detection blocking tests | Stealth |
-| **Lumos ShadowDOM** | Elements hidden in Shadow DOM | Modern Web |
-| **Visual Guard** | Visual regressions missed by DOM tests | Visual Testing |
-| **Visual Sonar** | Automating remote desktops (no DOM) | RPA |
-| **Selector Scout** | Brittle, constantly-breaking selectors | AI |
-| **Selenium Chatbot Test** | Testing streaming AI interfaces | GenAI |
-| **Pytest-MockLLM** | Testing LLM features without API costs | AI Testing |
-| **pytest-glow-report** | Reports stakeholders can understand | Reporting |
-
-## How to Use This Book
-
-### For Junior Developers (New to Automation)
-
-Start with **Part I: Foundations**. Don't skip Chapter 1 on browser internals—it will save you countless hours of debugging later. Every mysterious error you'll encounter has roots in concepts explained there.
-
-**Recommended path:**
-1. Part I (Foundations) → Part II (Visual Testing) → Part III (Authentication)
-2. Then jump to topics as needed
-
-### For Mid-Level Developers
-
-You can scan Part I quickly, but pay attention to the "Deep Dive" sections. Start with whatever chapter addresses your current pain point, then explore related topics.
-
-### For Senior/Architect Level
-
-Use this as a reference guide. The implementation details in each tool chapter can be directly applied to your frameworks. Pay special attention to Part IX (Enterprise Patterns).
-
-### Hands-On Learning
-
-Every chapter includes:
-- **💡 Key Insight** boxes highlighting critical concepts
-- **🔧 Hands-On Exercise** with step-by-step solutions
-- **⚠️ Common Pitfalls** that trip up even experienced developers
-- **🔍 Deep Dive** sections for those who want to understand internals
-- **📋 Quick Reference** summaries you can bookmark
-
----
+1. **Make outcomes observable.** Define the assertion before choosing the wait or the tool.
+2. **Keep failures explainable.** Capture the first failure, inputs, versions, and relevant artifacts before retrying.
+3. **Measure the tradeoff.** Track runtime, false positives, maintenance effort, and missed regressions on your own suite.
 
 # Prerequisites & Setup Guide
 
-Before diving in, ensure you have:
+## A reproducible starting point
 
-### Required Software
-
-```bash
-# Python 3.10+ (recommended: 3.11 or 3.12)
-python --version  # Should show 3.10+
-
-# pip package manager
-pip --version
-
-# Node.js (for some tools)
-node --version  # 18.0+ recommended
-
-# Git for version control
-git --version
-```
-
-### Browser Drivers
+Use a supported Python version compatible with the tools you choose, a current browser, Git, and an isolated virtual environment. For JavaScript examples, choose a supported Node.js LTS release from the [official release schedule](https://nodejs.org/en/about/previous-releases).
 
 ```bash
-# Option 1: Let Selenium Manager handle it (recommended for beginners)
-pip install selenium>=4.10.0  # Selenium 4.10+ has built-in driver management
-
-# Option 2: Manual installation
-# Download ChromeDriver matching your Chrome version from:
-# https://chromedriver.chromium.org/downloads
+python --version
+python -m venv .venv
+# Activate on macOS / Linux:
+source .venv/bin/activate
+# Or in Windows PowerShell:
+# .venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install selenium pytest requests
+python -m pip freeze > requirements.lock.txt
 ```
 
-### IDE Recommendations
+Commit the dependency lock after validating your environment. Record the browser and operating-system versions alongside test artifacts so local and CI failures can be compared.
 
-- **VS Code** with Python extension (most popular)
-- **PyCharm** (powerful but heavier)
-- **Any editor** with good Python support
+## Browser drivers
 
-### Creating Your Lab Environment
+[Selenium Manager](https://www.selenium.dev/documentation/selenium_manager/) is included in modern Selenium releases and resolves drivers when none is supplied. Restricted networks and offline CI may need pre-provisioned browser and driver binaries.
 
-```bash
-# Create a dedicated directory
-mkdir automation-playbook-labs
-cd automation-playbook-labs
+## Your first reproducible test
 
-# Create virtual environment
-python -m venv venv
+Save this as `test_smoke.py` and run `python -m pytest -q`. It uses an in-memory page, so it does not depend on an external application.
 
-# Activate it
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
+```python
+from urllib.parse import quote
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 
-# Install base packages
-pip install selenium pytest requests
+def test_browser_smoke():
+    driver = webdriver.Chrome()
+    try:
+        html = "<title>Playbook lab</title><h1>Ready</h1>"
+        driver.get("data:text/html;charset=utf-8," + quote(html))
+        assert driver.title == "Playbook lab"
+        assert driver.find_element(By.TAG_NAME, "h1").text == "Ready"
+    finally:
+        driver.quit()
 ```
 
----
+## Choose a waiting contract
+
+Wait for the outcome relevant to your test. Page loading does not guarantee that application state is ready, and mixing implicit and explicit Selenium waits can make timeout behavior unpredictable. See [Selenium waiting strategies](https://www.selenium.dev/documentation/webdriver/waits/) and [Playwright actionability checks](https://playwright.dev/docs/actionability). An actionable click still needs a business-result assertion.
 
 # PART I: FOUNDATIONS
+
 ## Understanding the Platform Before Building On It
 
 > *"You cannot truly master a tool until you understand the substrate it operates on."*
@@ -171,13 +103,17 @@ Before writing a single line of automation code, you need to understand what's a
 
 # Chapter 1: How Browsers Actually Work
 
+**What you’ll learn** Trace a user action through browser execution and rendering.
+
+**Put it to work** Replace one page-load assumption with an assertion about the resulting application state.
+
 ## Why This Chapter Matters
 
-Every automation failure you'll ever encounter traces back to something happening inside the browser. When your test fails with:
+Many browser automation failures become easier to diagnose when you understand rendering, events, and element lifecycles. Other failures come from test data, services, infrastructure, or the test itself.
 
-- `ElementNotInteractableException` — The browser says the element isn't ready
-- `StaleElementReferenceException` — The DOM changed while you were looking at it
-- `TimeoutException` — Something took longer than expected
+- `ElementNotInteractableException` — The browser says the element isn't ready 
+- `StaleElementReferenceException` — The DOM changed while you were looking at it 
+- `TimeoutException` — Something took longer than expected 
 - Element found but click doesn't work — Event handlers aren't attached yet
 
 Understanding browser internals transforms these from "random failures" into **predictable, fixable problems**.
@@ -187,6 +123,8 @@ Understanding browser internals transforms these from "random failures" into **p
 ## The Browser's Multi-Process Architecture
 
 Modern browsers like Chrome are not a single program—they're a **collection of processes** working together. This architecture was designed for security and stability, but it has profound implications for automation.
+
+![Browser Multi-Process Architecture](assets/images/browser_architecture.png)
 
 ### The Process Model
 
@@ -213,6 +151,11 @@ Modern browsers like Chrome are not a single program—they're a **collection of
 │  │    V8 JavaScript     │  │          │  │    V8 JavaScript     │  │
 │  │    Engine            │  │          │  │    Engine            │  │
 │  └──────────────────────┘  │          │  └──────────────────────┘  │
+    🔍 Deep Dive: V8 Bindings & The DOM Bridge
+    JavaScript doesn't "own" the DOM. The DOM lives in the C++ core of the browser engine (Blink). When you call
+        document.getElementById(), you're crossing a "bridge" from the JavaScript world (V8) to the C++
+        world. This context switching is expensive. In high-frequency automation, hundreds of these crossings occur
+        every second, creating a performance bottleneck that can look like network latency.
 └────────────────────────────┘          └────────────────────────────┘
              │
              ▼
@@ -335,15 +278,22 @@ Every time the DOM changes, layout might need to recalculate. This is why tests 
 ### Stage 6: Paint and Composite
 
 Finally, the browser:
-1. **Paints** each layer (turns elements into pixels)
-2. **Composites** layers together (stacking order, transparency)
+
+1. **Paints** each layer (turns elements into pixels) 
+2. **Composites** layers together (stacking order, transparency) 
 3. **Sends to GPU** for display
+
+### 🔍 Deep Dive: The Compositor vs. Main Thread
+
+A common automation mystery: *The element is visible, but the click fails.* This often happens because of thread contention. The **Compositor Thread** (which handles scrolling and some animations) is separate from the **Main Thread** (which handles JS and Layout). If the Main Thread is blocked by a long-running script, the browser can still *scroll* (compositor), but it cannot *process a click* (main thread). Automation stability requires the Main Thread to be "idle."
 
 ---
 
 ## The JavaScript Event Loop
 
 This is **the most important concept** for understanding flaky tests.
+
+![JavaScript Event Loop Diagram](assets/images/event_loop.png)
 
 ### The Single-Threaded Nature of JavaScript
 
@@ -374,10 +324,10 @@ JavaScript in the browser runs on a **single thread**. There's no true paralleli
 
 ### How the Event Loop Works
 
-1. Execute all code in the **Call Stack** until it's empty
-2. Process all tasks in the **Microtask Queue** (Promises, MutationObserver)
-3. Process ONE task from the **Macrotask Queue** (setTimeout, events)
-4. Render (if needed)
+1. Execute all code in the **Call Stack** until it's empty 
+2. Process all tasks in the **Microtask Queue** (Promises, MutationObserver) 
+3. Process ONE task from the **Macrotask Queue** (setTimeout, events) 
+4. Render (if needed) 
 5. Repeat
 
 ### Why This Matters for Automation
@@ -392,12 +342,14 @@ button.addEventListener('click', async () => {
 
 When your Selenium test clicks the button:
 
-1. Click event fires ✓
-2. Event handler starts executing ✓
-3. `fetch()` is called (goes to microtask queue) ✓
-4. **Event handler returns immediately** ✓
-5. Your test continues...
+1. Click event fires ✓ 
+2. Event handler starts executing ✓ 
+3. `fetch()` starts a network request in the background ✓ 
+4. **The handler pauses at `await` and returns control immediately** ✓ 
+5. Your test continues... 
 6. **BUT the DOM hasn't updated yet!**
+
+The rest of the handler (`updateUI()`) only runs after the response arrives, when the awaited Promise resolves and its continuation is queued as a microtask.
 
 This is the #1 cause of flaky tests: **assuming synchronous completion**.
 
@@ -452,7 +404,7 @@ WebDriverWait(driver, 10).until(
 ### What Each Event Means
 
 | Event | What's Ready | What's NOT Ready |
-|-------|-------------|------------------|
+| --- | --- | --- |
 | `DOMContentLoaded` | HTML parsed, DOM built | CSS, images, fonts, external JS |
 | `load` | All initial resources | Lazy-loaded content, AJAX data |
 | (no event) | Everything | — |
@@ -461,8 +413,8 @@ WebDriverWait(driver, 10).until(
 
 Selenium's `driver.get(url)` waits for the `load` event by default. But modern single-page applications often:
 
-1. Load a minimal HTML shell (triggers `load`)
-2. Execute JavaScript that fetches data
+1. Load a minimal HTML shell (triggers `load`) 
+2. Execute JavaScript that fetches data 
 3. Render the actual UI
 
 Your test starts after `load`, but the UI you need to interact with hasn't rendered yet!
@@ -521,25 +473,18 @@ Understanding this communication protocol helps debug "weird" failures.
                                         └────────────────┘
 ```
 
-### What Happens When You Call `find_element()`
+### What Happens When You Call find_element()
 
 ```python
 element = driver.find_element(By.ID, "submit-button")
 ```
 
-1. **Your code** calls Selenium's Python binding
-2. **Selenium** sends HTTP POST to ChromeDriver:
-   ```json
-   POST /session/{sessionId}/element
-   {"using": "css selector", "value": "#submit-button"}
-   ```
-3. **ChromeDriver** translates to CDP command
-4. **Chrome** executes `document.querySelector("#submit-button")`
-5. **Chrome** returns element reference to ChromeDriver
-6. **ChromeDriver** returns JSON response:
-   ```json
-   {"value": {"element-6066-11e4-a52e-4f735466cecf": "abc123"}}
-   ```
+1. **Your code** calls Selenium's Python binding 
+2. **Selenium** sends HTTP POST to ChromeDriver: `json POST /session/{sessionId}/element {"using": "css selector", "value": "#submit-button"}` 
+3. **ChromeDriver** translates to CDP command 
+4. **Chrome** executes `document.querySelector("#submit-button")` 
+5. **Chrome** returns element reference to ChromeDriver 
+6. **ChromeDriver** returns JSON response: `json {"value": {"element-6066-11e4-a52e-4f735466cecf": "abc123"}}` 
 7. **Selenium** wraps this in a `WebElement` object
 
 ### Why Elements Become "Stale"
@@ -570,12 +515,18 @@ driver.execute_cdp_cmd("Network.enable", {})
 ### Key CDP Domains for Testing
 
 | Domain | Capabilities |
-|--------|-------------|
+| --- | --- |
 | `Network` | Intercept requests, mock responses, throttle bandwidth |
 | `DOM` | Query/modify DOM, track mutations |
 | `Performance` | Collect metrics, trace execution |
 | `Console` | Capture console.log output |
 | `Emulation` | Spoof device, geolocation, timezone |
+
+---
+
+### 🔍 Deep Dive: The Hidden Latency - Cost of a WebDriver Command
+
+Every Selenium command (e.g., `element.is_displayed()`) is an out-of-process network call. Even on localhost, there is overhead for serialization, network transmission, and deserialization. When you put a `find_element` call inside a tight loop, you're not just waiting for the browser; you're paying a "tax" of 5-10ms per call just for the communication protocol itself. This is why batching interactions in JavaScript (using `execute_script`) is often 10x faster for complex tasks.
 
 ---
 
@@ -627,6 +578,7 @@ driver.quit()
 ```
 
 **Expected Output:**
+
 ```
 Page load complete. Title: Example Domain
 Total DOM size: 1234 characters
@@ -640,7 +592,7 @@ Mutations observed: ['childList']
 ## 📋 Chapter 1 Summary
 
 | Concept | Key Takeaway |
-|---------|-------------|
+| --- | --- |
 | Multi-Process Architecture | Each tab runs in isolation; crashes don't affect other tabs |
 | Rendering Pipeline | HTML → DOM → CSSOM → Render Tree → Layout → Paint |
 | Event Loop | Single-threaded but async; explains why clicks don't wait |
@@ -654,6 +606,10 @@ Mutations observed: ['childList']
 
 # Chapter 2: The Anatomy of a Flaky Test
 
+**What you’ll learn** Classify intermittent failures before changing timeouts.
+
+**Put it to work** Keep the first failure trace and reproduce one race with controlled latency.
+
 ## Understanding Why Tests Fail Intermittently
 
 Flaky tests are the silent killers of automation credibility. A test that passes on Monday, fails on Tuesday, and passes again on Wednesday—with zero code changes—destroys trust faster than any bug in production.
@@ -663,7 +619,7 @@ Flaky tests are the silent killers of automation credibility. A test that passes
 Consider these statistics from real enterprise environments:
 
 | Metric | Impact |
-|--------|--------|
+| --- | --- |
 | Developer time investigating false failures | 4-6 hours/week per engineer |
 | Pipeline re-runs due to flaky tests | 15-25% of all runs |
 | Confidence in test results | Drops below 60% |
@@ -675,17 +631,22 @@ When developers stop trusting test results, they stop looking at them. The autom
 
 Every flaky test has a **deterministic root cause**. The test isn't "randomly" failing—it's failing because of specific conditions that aren't always present. Your job is to find those conditions.
 
+### 🔍 Deep Dive: The Micro-Stutter - GC and JIT Interference
+
+Sometimes the browser itself stops responding for a few milliseconds. This happens during **Garbage Collection (GC)**—when V8 pauses execution to clean up memory—or **Just-In-Time (JIT) Compilation**. These "micro-stutters" are nearly invisible to humans but can cause a race condition to trigger in automation if the browser pauses exactly when a click is being sent. Stable automation builds in a small buffer for these unavoidable internal pauses.
+
 ---
 
 ## Root Cause Analysis: The Five Categories of Flakiness
 
-### Category 1: Race Conditions (40% of flaky tests)
+### Category 1: Race Conditions
 
 The browser and test script operate at different speeds. The script says "click the button" before the button is ready.
 
 **Symptoms:**
-- `ElementNotInteractableException`
-- `StaleElementReferenceException`
+
+- `ElementNotInteractableException` 
+- `StaleElementReferenceException` 
 - Tests pass locally, fail in CI
 
 **Example of the Problem:**
@@ -697,9 +658,10 @@ driver.find_element(By.ID, "submit-btn").click()  # May fail!
 ```
 
 The page is still loading when the click executes. The element might:
-- Not exist in the DOM yet
-- Exist but be covered by a loading overlay
-- Exist but be outside the viewport
+
+- Not exist in the DOM yet 
+- Exist but be covered by a loading overlay 
+- Exist but be outside the viewport 
 - Exist but have event handlers not yet attached
 
 **🔍 Deep Dive: Why Event Handlers Aren't Attached Immediately**
@@ -728,19 +690,20 @@ button.click()
 
 ---
 
-### Category 2: Network Variability (25% of flaky tests)
+### Category 2: Network Variability
 
 API calls complete at different speeds. A dashboard that loads in 200ms locally might take 2 seconds in CI.
 
 **Symptoms:**
-- Tests timeout in CI but pass locally
-- Intermittent failures correlate with time of day
+
+- Tests timeout in CI but pass locally 
+- Intermittent failures correlate with time of day 
 - Tests fail more often on shared CI infrastructure
 
 **Why CI Is Different:**
 
 | Factor | Local Development | CI Environment |
-|--------|------------------|----------------|
+| --- | --- | --- |
 | Network Latency | Near-zero (localhost) | Variable (shared infra) |
 | CPU | Dedicated | Shared with other jobs |
 | Memory | Abundant | Often limited |
@@ -759,7 +722,7 @@ element = wait.until(EC.presence_of_element_located((By.ID, "data-loaded")))
 
 ---
 
-### Category 3: Animation Interference (15% of flaky tests)
+### Category 3: Animation Interference
 
 CSS transitions and JavaScript animations don't block Selenium. The test clicks where the button *will be*, not where it *is*.
 
@@ -779,31 +742,40 @@ The modal slides in over 300ms. Selenium doesn't wait for CSS transitions.
 
 **🔍 Deep Dive: How Animations Break Clicks**
 
-1. Test finds element at position (100, 500) - where modal WILL be
-2. Browser reports element as "visible" because `opacity > 0` and `display != none`
-3. Test sends click command to coordinates (100, 500)
-4. Animation is still in progress - element is actually at (100, 350)
+1. Test finds element at position (100, 500) - where modal WILL be 
+2. Browser reports element as "visible" because `opacity > 0` and `display != none` 
+3. Test sends click command to coordinates (100, 500) 
+4. Animation is still in progress - element is actually at (100, 350) 
 5. Click hits wrong element or nothing
 
 **Solution Pattern:**
 
 ```python
-# Wait for all animations to complete
-def wait_for_animations(driver):
+from selenium import webdriver
+from selenium.common.exceptions import JavascriptException
+
+# Wait for all finite animations to complete
+def wait_for_animations(driver, timeout=5):
     driver.execute_script("""
-        return new Promise(resolve => {
+        const deadline = performance.now() + arguments[0] * 1000;
+        return new Promise((resolve, reject) => {
             const checkAnimations = () => {
-                const animations = document.getAnimations();
-                const running = animations.filter(a => a.playState === 'running');
+                const running = document.getAnimations().filter(a =>
+                    a.playState === 'running' &&
+                    // Skip infinite animations such as spinners: they never finish
+                    a.effect.getComputedTiming().endTime !== Infinity
+                );
                 if (running.length === 0) {
                     resolve();
+                } else if (performance.now() > deadline) {
+                    reject(new Error(running.length + ' animation(s) still running'));
                 } else {
                     requestAnimationFrame(checkAnimations);
                 }
             };
             checkAnimations();
         });
-    """)
+    """, timeout)
 
 # Usage
 driver.find_element(By.CLASS_NAME, "open-modal").click()
@@ -814,10 +786,10 @@ modal_button.click()
 
 ---
 
-### Category 4: External Dependencies (10% of flaky tests)
+### Category 4: External Dependencies
 
-- Third-party services (payment gateways, OAuth providers)
-- Shared databases with concurrent test runs
+- Third-party services (payment gateways, OAuth providers) 
+- Shared databases with concurrent test runs 
 - Time-dependent logic (tests fail at midnight)
 
 **Solution Patterns:**
@@ -828,7 +800,7 @@ modal_button.click()
 def mock_payment_gateway():
     with responses.RequestsMock() as rsps:
         rsps.add(
-            responses.POST, 
+            responses.POST,
             "https://api.stripe.com/v1/charges",
             json={"id": "ch_test123", "status": "succeeded"},
             status=200
@@ -855,15 +827,16 @@ def test_discount_during_sale_period():
 
 ---
 
-### Category 5: Resource Contention (10% of flaky tests)
+### Category 5: Resource Contention
 
-- Insufficient memory causing slow garbage collection
-- CPU contention on shared CI runners
+- Insufficient memory causing slow garbage collection 
+- CPU contention on shared CI runners 
 - Browser instance limits exceeded
 
 **Symptoms:**
-- Failures cluster at certain times (when CI is busy)
-- Memory-related crashes
+
+- Failures cluster at certain times (when CI is busy) 
+- Memory-related crashes 
 - "Chrome not reachable" errors
 
 **Solution Patterns:**
@@ -881,7 +854,8 @@ jobs:
 # 2. Limit parallel browser instances
 # pytest.ini
 [pytest]
-addopts = -n 4  # Max 4 parallel workers
+# Max 4 parallel workers (pytest.ini comments must be on their own line)
+addopts = -n 4
 
 # 3. Add resource monitoring
 import psutil
@@ -897,7 +871,7 @@ def check_system_resources():
 
 ## The Traditional Solutions (And Why They Don't Work)
 
-### Solution 1: `time.sleep()` - The Worst Fix
+### Solution 1: time.sleep() - The Worst Fix
 
 ```python
 driver.get("https://app.example.com/dashboard")
@@ -906,8 +880,9 @@ driver.find_element(By.ID, "submit-btn").click()
 ```
 
 **Problems:**
-- **Too slow**: You wait 5 seconds even when the page loads in 500ms
-- **Still flaky**: Sometimes 5 seconds isn't enough
+
+- **Too slow**: You wait 5 seconds even when the page loads in 500ms 
+- **Still flaky**: Sometimes 5 seconds isn't enough 
 - **Compounds**: 100 tests × 3 sleeps each × 5 seconds = **25 minutes wasted**
 
 ### Solution 2: Explicit Waits - Better But Incomplete
@@ -924,14 +899,16 @@ element.click()
 ```
 
 **Improvements:**
-- Returns as soon as condition is met
-- Has a timeout for failure cases
+
+- Returns as soon as condition is met 
+- Has a timeout for failure cases 
 - More descriptive failures
 
 **Remaining Problems:**
-- Doesn't wait for network calls to complete
-- Doesn't wait for animations to finish
-- Doesn't detect JavaScript-driven readiness
+
+- Doesn't wait for network calls to complete 
+- Doesn't wait for animations to finish 
+- Doesn't detect JavaScript-driven readiness 
 - Requires explicit waits everywhere in code
 
 ### Solution 3: Custom Expected Conditions - High Maintenance
@@ -940,7 +917,7 @@ element.click()
 class all_animations_complete:
     def __call__(self, driver):
         return driver.execute_script("""
-            return document.getAnimations().every(a => 
+            return document.getAnimations().every(a =>
                 a.playState === 'finished' || a.playState === 'idle'
             );
         """)
@@ -949,8 +926,9 @@ wait.until(all_animations_complete())
 ```
 
 **Problems:**
-- Must remember to add this everywhere
-- Doesn't handle network calls
+
+- Must remember to add this everywhere 
+- Doesn't handle network calls 
 - Complex to maintain across team
 
 ---
@@ -975,7 +953,7 @@ RESULTS_FILE = "flaky_analysis.json"
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
-    
+
     if call.when == "call":
         result = {
             "test": item.name,
@@ -984,21 +962,22 @@ def pytest_runtest_makereport(item, call):
             "duration": report.duration,
             "error": str(report.longrepr) if report.failed else None
         }
-        
+
         # Append to results file
         try:
             with open(RESULTS_FILE, "r") as f:
                 data = json.load(f)
         except FileNotFoundError:
             data = []
-        
+
         data.append(result)
-        
+
         with open(RESULTS_FILE, "w") as f:
             json.dump(data, f, indent=2)
 ```
 
 Run analysis:
+
 ```bash
 for i in {1..50}; do pytest test_flaky.py --tb=short; done
 python analyze_flaky.py  # Analyze patterns
@@ -1011,15 +990,15 @@ python analyze_flaky.py  # Analyze patterns
 def driver(request):
     driver = webdriver.Chrome()
     yield driver
-    
+
     # Capture screenshot on failure
     if request.node.rep_call.failed:
         screenshot_dir = Path("screenshots")
         screenshot_dir.mkdir(exist_ok=True)
-        
+
         filename = f"{request.node.name}_{datetime.now():%Y%m%d_%H%M%S}.png"
         driver.save_screenshot(str(screenshot_dir / filename))
-    
+
     driver.quit()
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -1032,17 +1011,29 @@ def pytest_runtest_makereport(item, call):
 ### Tool 3: Network Log Capture
 
 ```python
+# Resource Timing only lists requests that have already finished,
+# so it cannot show pending ones. Count them in the page instead.
+TRACKER = """
+window.__pending_requests = 0;
+const originalFetch = window.fetch;
+window.fetch = (...args) => {
+    window.__pending_requests++;
+    return originalFetch(...args).finally(() => window.__pending_requests--);
+};
+const originalSend = XMLHttpRequest.prototype.send;
+XMLHttpRequest.prototype.send = function (...args) {
+    window.__pending_requests++;
+    this.addEventListener('loadend', () => window.__pending_requests--, { once: true });
+    return originalSend.apply(this, args);
+};
+"""
+
 def enable_network_logging(driver):
-    driver.execute_cdp_cmd("Network.enable", {})
-    
+    # Chrome only: runs the tracker before the page's own scripts on every load
+    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {"source": TRACKER})
+
 def get_pending_requests(driver):
-    # This requires more complex CDP subscription setup
-    logs = driver.execute_script("""
-        return window.performance.getEntriesByType('resource')
-            .filter(e => e.responseEnd === 0)
-            .map(e => e.name);
-    """)
-    return logs
+    return driver.execute_script("return window.__pending_requests || 0")
 ```
 
 ---
@@ -1050,7 +1041,7 @@ def get_pending_requests(driver):
 ## 📋 Chapter 2 Summary
 
 | Flakiness Category | Percentage | Primary Solution |
-|-------------------|------------|------------------|
+| --- | --- | --- |
 | Race Conditions | 40% | Explicit waits for expected state |
 | Network Variability | 25% | Generous timeouts, network mocking |
 | Animation Interference | 15% | Wait for `getAnimations()` to settle |
@@ -1063,6 +1054,10 @@ def get_pending_requests(driver):
 
 # Chapter 3: Waitless - Intelligent Stability Detection
 
+**What you’ll learn** Evaluate stability signals without treating quietness as success.
+
+**Put it to work** Compare a bounded readiness check with an explicit outcome assertion on a polling page.
+
 ## A Fundamentally Different Approach
 
 Instead of telling Selenium when to wait, **Waitless** instruments the browser itself to detect when waiting is no longer needed.
@@ -1073,16 +1068,20 @@ Traditional approaches ask: *"What should I wait for?"*
 
 Waitless asks: *"What signals indicate the page is stable?"*
 
-**The three signals of stability:**
-1. **DOM settled** — No elements being added/removed/modified
-2. **Network idle** — No pending HTTP requests
-3. **Animations complete** — No CSS or JavaScript animations running
+**The four signals of stability:**
 
-When all three are true, the page is ready for interaction.
+1. **DOM settled**: No elements being added/removed/modified 
+2. **Network idle**: No pending XHR or fetch requests 
+3. **Animations complete**: No CSS animations or transitions running (strict mode only) 
+4. **Layout stable**: Elements have stopped moving (strict mode only)
+
+The default `normal` mode waits for the DOM and the network. `strict` mode also waits for animations and layout. When the checks for the chosen mode pass, the page is ready for interaction.
 
 ---
 
-## The Architecture
+## 🔍 Deep Dive: The Waitless Architecture
+
+![Waitless Architecture](assets/images/waitless_architecture.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1126,18 +1125,22 @@ pip install waitless
 
 ```python
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from waitless import stabilize
 
 # Wrap your driver once at the start
 driver = stabilize(webdriver.Chrome())
 
-# All subsequent commands automatically wait for stability
-driver.get("https://app.example.com")
-driver.find_element(By.ID, "dynamic-button").click()  # Stable!
-driver.find_element(By.ID, "ajax-loaded-element").send_keys("text")  # Stable!
+# get, find_element and click now wait for the page to settle
+driver.get("https://app.example.com/login")
+driver.find_element(By.ID, "email").send_keys("user@example.com")
+driver.find_element(By.ID, "login-btn").click()
+driver.find_element(By.ID, "load").click()  # starts a slow fetch
+print(driver.find_element(By.CSS_SELECTOR, "#results .result").text)  # waits for it
+driver.quit()
 ```
 
-**That's it.** No explicit waits. No sleep statements. The driver automatically waits for stability before every action.
+**That's it.** No explicit waits. No sleep statements. The driver automatically waits for stability before every action. **New in v0.3.0+:** Waitless also observes **open Shadow DOM** roots, so changes inside web components count too. Closed shadow roots cannot be observed.
 
 ---
 
@@ -1148,16 +1151,17 @@ driver.find_element(By.ID, "ajax-loaded-element").send_keys("text")  # Stable!
 The `MutationObserver` API watches for changes to the DOM tree:
 
 ```javascript
-// Injected by Waitless into the browser
+// Simplified sketch of what Waitless injects
+// (the real script keeps its state in window.__waitless__)
 (function() {
     window.__waitless_last_mutation = Date.now();
     window.__waitless_mutation_count = 0;
-    
+
     const observer = new MutationObserver((mutations) => {
         window.__waitless_mutation_count += mutations.length;
         window.__waitless_last_mutation = Date.now();
     });
-    
+
     observer.observe(document.body, {
         childList: true,    // Watch for added/removed elements
         subtree: true,      // Watch entire DOM tree
@@ -1176,33 +1180,33 @@ The `MutationObserver` API watches for changes to the DOM tree:
 Waitless intercepts `XMLHttpRequest` and `fetch` to track pending requests:
 
 ```javascript
-// XMLHttpRequest interception
+// Simplified sketch: XMLHttpRequest interception
 (function() {
     window.__waitless_pending_requests = 0;
-    
+
     const originalXHROpen = XMLHttpRequest.prototype.open;
     const originalXHRSend = XMLHttpRequest.prototype.send;
-    
+
     XMLHttpRequest.prototype.open = function(...args) {
         this.__waitless_url = args[1];
         return originalXHROpen.apply(this, args);
     };
-    
+
     XMLHttpRequest.prototype.send = function(...args) {
         window.__waitless_pending_requests++;
-        
+
         this.addEventListener('loadend', () => {
             window.__waitless_pending_requests--;
         });
-        
+
         return originalXHRSend.apply(this, args);
     };
-    
+
     // Fetch interception
     const originalFetch = window.fetch;
     window.fetch = function(...args) {
         window.__waitless_pending_requests++;
-        
+
         return originalFetch.apply(this, args)
             .finally(() => {
                 window.__waitless_pending_requests--;
@@ -1218,22 +1222,23 @@ Waitless intercepts `XMLHttpRequest` and `fetch` to track pending requests:
 Tracks CSS animations and JavaScript animations:
 
 ```javascript
+// Simplified sketch of the animation tracker
 (function() {
     window.__waitless_active_animations = 0;
-    
+
     // CSS Animation tracking
     document.addEventListener('animationstart', () => {
         window.__waitless_active_animations++;
     });
-    
+
     document.addEventListener('animationend', () => {
         window.__waitless_active_animations--;
     });
-    
+
     document.addEventListener('transitionstart', () => {
         window.__waitless_active_animations++;
     });
-    
+
     document.addEventListener('transitionend', () => {
         window.__waitless_active_animations--;
     });
@@ -1241,86 +1246,104 @@ Tracks CSS animations and JavaScript animations:
 
 // Web Animations API check
 const getActiveAnimations = () => {
-    return document.getAnimations().filter(a => 
+    return document.getAnimations().filter(a =>
         a.playState === 'running'
     ).length;
 };
 ```
 
-**Stability Criteria:** Zero running animations.
+**Stability Criteria:** Zero running animations (checked in strict mode).
 
 ---
 
 ## Configuration Options
 
-```python
-from waitless import stabilize, StabilityConfig
+All settings live in `StabilizationConfig`. Times are in seconds.
 
-config = StabilityConfig(
-    # Timing controls
-    mutation_settle_time=100,      # ms to wait after last DOM change
-    network_idle_time=50,          # ms to wait after last network request
-    animation_settle_time=50,      # ms to wait after last animation
-    
-    # Safety limits
-    max_wait_time=30000,           # maximum wait time in ms
-    poll_interval=50,              # how often to check stability
-    
-    # URL filtering (ignore analytics, monitoring, etc.)
-    ignore_urls=[
-        r".*google-analytics.*",
-        r".*googletagmanager.*",
-        r".*hotjar.*",
-        r".*sentry.*",
-        r".*datadog.*"
-    ]
+```python
+from selenium import webdriver
+from waitless import stabilize, StabilizationConfig
+
+config = StabilizationConfig(
+    timeout=15,                 # seconds before StabilizationTimeout is raised
+    dom_settle_time=0.1,        # seconds the DOM must stay quiet
+    network_idle_threshold=0,   # pending XHR/fetch requests still allowed
+    animation_detection=True,   # track CSS animations and transitions
+    strictness="normal",        # "strict", "normal" or "relaxed"
+    poll_interval=0.05,         # seconds between stability checks
 )
 
 driver = stabilize(webdriver.Chrome(), config=config)
+
+# Or start from a preset
+strict_config = StabilizationConfig.strict()    # DOM, network, animations, layout
+relaxed_config = StabilizationConfig.relaxed()  # DOM only
+ci_config = StabilizationConfig.ci()            # longer timeout, debug logging
 ```
 
 ### When to Adjust Configuration
 
 | Scenario | Adjustment |
-|----------|------------|
-| Very slow API responses | Increase `max_wait_time` |
-| Complex animations | Increase `animation_settle_time` |
-| Analytics causing false positives | Add URLs to `ignore_urls` |
+| --- | --- |
+| Very slow API responses | Increase `timeout` |
+| Clicks land while an element is still moving | Use `strictness="strict"` so animations and layout must settle too |
+| Analytics or polling keeps the network busy | Raise `network_idle_threshold` (for example to 2) |
+| Infinite spinners or animated backgrounds | Set `animation_detection=False` |
 | Need faster feedback | Decrease `poll_interval` (use cautiously) |
 
 ---
 
 ## Debugging Stability Issues
 
-When a test still fails, Waitless provides diagnostic information:
+When the page never settles, Waitless raises `StabilizationTimeout`. The diagnostics tell you which signal was still busy:
 
 ```python
-from waitless import get_diagnostics
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from waitless import stabilize, StabilizationConfig, StabilizationTimeout, get_diagnostics
+from waitless.diagnostics import print_report
 
-# After a test failure, check what was unstable
-diagnostics = get_diagnostics(driver)
+driver = stabilize(webdriver.Chrome(), config=StabilizationConfig(timeout=3))
+driver.get("https://app.example.com/dashboard")
+driver.execute_script("fetch('/slow')")  # a request that takes 8 seconds
 
-print(f"Pending network requests: {diagnostics['pending_requests']}")
-print(f"Last mutation age: {diagnostics['ms_since_last_mutation']}ms")
-print(f"Active animations: {diagnostics['active_animations']}")
-print(f"Blocking URLs: {diagnostics['blocking_urls']}")
+try:
+    driver.find_element(By.ID, "email").click()
+except StabilizationTimeout:
+    diagnostics = get_diagnostics(driver)
+    print(diagnostics["blocking_factors"])  # which signal was still busy
+    print_report(diagnostics)               # readable report with suggestions
+finally:
+    driver.quit()
 ```
 
-**Example output for a failing test:**
+**Example output (shortened):**
+
 ```
-Pending network requests: 2
-Last mutation age: 15ms
-Active animations: 0
-Blocking URLs: ['/api/user/profile', '/api/notifications']
+UI did not stabilize within 3.0s. Blocking: ['pending_requests']
+
+| SIGNAL STATUS:                                                   |
+|   [OK] [M] DOM_MUTATIONS: Mutation rate: 0/sec (threshold: 50/se |
+|   [WAIT] [M] NETWORK_REQUESTS: 1 pending request(s) (threshold:  |
+|   [OK] [O] CSS_ANIMATIONS: 0 active animation(s)                 |
+| SUGGESTIONS:                                                     |
+| 1. Network requests are blocking stability. If your app has      |
+|    background traffic (analytics, polling), consider:            |
+|      config = StabilizationConfig(network_idle_threshold=2)      |
 ```
 
-This tells you the page wasn't stable because two API calls were still pending.
+This tells you the page wasn't stable because a request was still pending. Save the diagnostics to a JSON file and run `python -m waitless doctor --file diagnostics.json` to get the same report from the command line.
 
 ---
 
-## Real-World Impact
+![Test Stability Visualization](assets/images/stability.png)
+
+## Illustrative impact: what to measure
+
+Use the following figures as illustrative examples, not independently verified benchmarks. Record your baseline, workload, versions, and repeat runs before attributing a gain to a tool.
 
 **Before Waitless:**
+
 ```
 Test Suite: checkout_flow (5 tests)
 ├── test_add_to_cart        PASSED
@@ -1330,13 +1353,14 @@ Test Suite: checkout_flow (5 tests)
 └── test_payment            PASSED
 
 Run 1: 60% pass rate
-Run 2: 80% pass rate  
+Run 2: 80% pass rate
 Run 3: 40% pass rate
 Average: 60% (Expected: 100%)
 Re-runs required: 3-4 per CI pipeline
 ```
 
 **After Waitless:**
+
 ```
 Test Suite: checkout_flow (5 tests)
 ├── test_add_to_cart        PASSED
@@ -1356,49 +1380,30 @@ Re-runs required: 0
 
 ### Pitfall 1: Long-Polling / WebSockets
 
-If your app uses long-polling or maintains open WebSocket connections, Waitless may wait indefinitely for "network idle."
-
-**Solution:**
-```python
-config = StabilityConfig(
-    ignore_urls=[
-        r".*socket.*",
-        r".*poll.*",
-        r".*long-poll.*"
-    ]
-)
-```
+If your app keeps requests open (long polling) or sends constant background requests, the network may never look idle and you get `StabilizationTimeout`. WebSocket and SSE tracking is off by default, so open sockets do not block unless you turn tracking on.
 
 ### Pitfall 2: Infinite Animations
 
-Loading spinners and animated backgrounds never "complete."
-
-**Solution:**
-```python
-# Waitless ignores animations on elements with these classes
-config = StabilityConfig(
-    ignore_animation_selectors=[
-        ".loading-spinner",
-        ".animated-background",
-        "[data-infinite-animation]"
-    ]
-)
-```
+Loading spinners and animated backgrounds never "complete." In normal mode animations do not block, but strict mode waits for them.
 
 ### Pitfall 3: Analytics Calls
 
-Google Analytics, Hotjar, and other analytics tools make constant requests.
+Google Analytics, Hotjar, and other analytics tools make constant requests. Waitless has no URL ignore list, so allow a small number of pending requests instead.
 
-**Solution:**
+**Solutions:**
+
 ```python
-config = StabilityConfig(
-    ignore_urls=[
-        r".*google-analytics.*",
-        r".*googletagmanager.*",
-        r".*hotjar.*",
-        r".*segment.*"
-    ]
-)
+from waitless import StabilizationConfig
+
+# Background polling or analytics: allow a few requests to stay pending
+polling_config = StabilizationConfig(network_idle_threshold=2)
+
+# Infinite spinners: stop tracking animations
+spinner_config = StabilizationConfig(animation_detection=False)
+
+# WebSocket and SSE tracking is off by default. Turn it on only when you
+# want a quiet socket to be part of "stable".
+socket_config = StabilizationConfig(track_websocket=True, websocket_quiet_time=0.5)
 ```
 
 ---
@@ -1410,13 +1415,12 @@ Create a test that demonstrates Waitless in action:
 ```python
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from waitless import stabilize, StabilityConfig, get_diagnostics
-import time
+from waitless import stabilize, StabilizationConfig, get_diagnostics
 
 # Setup with custom config
-config = StabilityConfig(
-    mutation_settle_time=200,  # Extra buffer for this exercise
-    max_wait_time=10000
+config = StabilizationConfig(
+    dom_settle_time=0.2,  # extra buffer for this exercise
+    timeout=10,
 )
 
 driver = stabilize(webdriver.Chrome(), config=config)
@@ -1424,22 +1428,22 @@ driver = stabilize(webdriver.Chrome(), config=config)
 try:
     # Test 1: Dynamic content loading
     driver.get("https://jsonplaceholder.typicode.com/")
-    
-    # By the time this line runs, the page is guaranteed stable
+
+    # find_element waits for the page to settle first
     title = driver.find_element(By.TAG_NAME, "h1").text
     print(f"✓ Page loaded. Title: {title}")
-    
-    # Check what Waitless detected
+
+    # Check what Waitless saw on its last check
     diagnostics = get_diagnostics(driver)
-    print(f"  Stability achieved in {diagnostics['total_wait_time']}ms")
-    
+    print(f"  Stable on last check: {diagnostics['last_status']['is_stable']}")
+
     # Test 2: Navigating to a different page
     driver.get("https://httpbin.org/html")
     content = driver.find_element(By.TAG_NAME, "p").text[:50]
     print(f"✓ Second page loaded. Content preview: {content}...")
-    
-    print("\n✅ All tests passed with automatic stability detection!")
-    
+
+    print("\n✅ All steps passed with automatic stability detection!")
+
 finally:
     driver.quit()
 ```
@@ -1449,7 +1453,7 @@ finally:
 ## 📋 Chapter 3 Summary
 
 | Feature | Benefit |
-|---------|---------|
+| --- | --- |
 | Automatic stability detection | No manual waits needed |
 | DOM mutation tracking | Catches React/Vue re-renders |
 | Network request tracking | Waits for AJAX to complete |
@@ -1463,8 +1467,8 @@ finally:
 
 ---
 
-
 # PART II: VISUAL TESTING
+
 ## Catching What Functional Tests Miss
 
 > *"A user doesn't interact with the DOM—they interact with pixels. Test accordingly."*
@@ -1473,13 +1477,18 @@ finally:
 
 # Chapter 4: Visual Guard - Comprehensive Visual Regression Testing
 
+**What you’ll learn** Choose visual comparisons that detect meaningful changes.
+
+**Put it to work** Introduce one real layout regression and one expected dynamic value; inspect both results.
+
 ## Why Visual Testing Matters
 
 Functional tests verify that buttons click and forms submit. They **don't** verify that:
-- The button is visible and properly styled
-- Text is readable (not white on white)
-- Layout hasn't shifted unexpectedly
-- Mobile responsive design still works
+
+- The button is visible and properly styled 
+- Text is readable (not white on white) 
+- Layout hasn't shifted unexpectedly 
+- Mobile responsive design still works 
 - CSS didn't accidentally hide critical elements
 
 A user sees pixels, not DOM elements. Visual testing validates what users actually experience.
@@ -1487,7 +1496,7 @@ A user sees pixels, not DOM elements. Visual testing validates what users actual
 ### The Real-World Cost of Missed Visual Bugs
 
 | Bug Type | Functional Test Result | User Experience |
-|----------|----------------------|-----------------|
+| --- | --- | --- |
 | Button moved 200px left | ✅ PASS (still clickable) | "Where's the buy button?" |
 | Text color matches background | ✅ PASS (text exists in DOM) | "I can't read anything!" |
 | Modal renders behind overlay | ✅ PASS (elements exist) | "The site is frozen!" |
@@ -1510,17 +1519,19 @@ def compare_images(baseline, current):
 ```
 
 **Problems with this approach:**
-- Anti-aliasing differences across browsers/OS
-- Sub-pixel rendering variations
-- Font smoothing differences (Mac vs Windows)
-- System clock visible in screenshots
-- Dynamic content (usernames, timestamps)
+
+- Anti-aliasing differences across browsers/OS 
+- Sub-pixel rendering variations 
+- Font smoothing differences (Mac vs Windows) 
+- System clock visible in screenshots 
+- Dynamic content (usernames, timestamps) 
 - **Result: Constant false positives**
 
 ### 💡 Key Insight: Identical Pixels ≠ Same Visual Experience
 
 Two images can be:
-- **Pixel-different but visually identical** (anti-aliasing variations)
+
+- **Pixel-different but visually identical** (anti-aliasing variations) 
 - **Pixel-similar but visually different** (subtle color shift across entire page)
 
 We need algorithms that match **human perception**, not bit comparison.
@@ -1585,9 +1596,10 @@ Where α, β, γ are weights (typically all 1)
 ```
 
 **Why SSIM is better for visual testing:**
-- Ignores minor anti-aliasing differences (structure preserved)
-- Detects layout shifts (structure changed)
-- Handles slight color variations gracefully
+
+- Ignores minor anti-aliasing differences (structure preserved) 
+- Detects layout shifts (structure changed) 
+- Handles slight color variations gracefully 
 - Matches human perception of "same" vs "different"
 
 ### Algorithm 2: Perceptual Hashing (pHash)
@@ -1599,26 +1611,28 @@ pHash creates a "fingerprint" of the image that's resistant to minor changes:
 def perceptual_hash(image):
     # 1. Resize to small square (32x32)
     small = resize(image, 32, 32)
-    
+
     # 2. Convert to grayscale
     gray = grayscale(small)
-    
+
     # 3. Apply Discrete Cosine Transform (DCT)
     dct = discrete_cosine_transform(gray)
-    
+
     # 4. Keep only low-frequency components (top-left 8x8)
     low_freq = dct[:8, :8]
-    
-    # 5. Compute average (excluding DC component)
-    avg = average(low_freq[1:])
-    
+
+    # 5. Compute average (excluding the DC term, the top-left value)
+    values = low_freq.flatten()
+    avg = average(values[1:])
+
     # 6. Create hash: 1 if above average, 0 if below
-    hash = "".join("1" if v > avg else "0" for v in low_freq.flat)
-    
+    hash = "".join("1" if v > avg else "0" for v in values)
+
     return hash  # 64-bit string like "1010110010..."
 ```
 
 **Comparing with pHash:**
+
 ```python
 # Hamming distance = number of different bits
 hash1 = "10101100..."  # Baseline
@@ -1639,86 +1653,93 @@ hamming_distance = 1  # Very similar!
 pip install visual-guard
 ```
 
+The package installs Pillow, ImageHash and scikit-image, so pixel, pHash and SSIM comparisons all work out of the box. You import it as `visual_guard`.
+
 ### Basic Usage
 
 ```python
 from selenium import webdriver
-from visualguard import VisualGuard
+from visual_guard import VisualTester
 
 driver = webdriver.Chrome()
+driver.set_window_size(1280, 900)  # keep the size fixed so images line up
 driver.get("https://example.com")
 
-# Initialize Visual Guard
-guard = VisualGuard(
-    baseline_dir="./baselines",
-    comparison_method="ssim",
-    threshold=0.95  # 95% similarity required to pass
+tester = VisualTester(baseline_dir="baselines", snapshot_dir="snapshots")
+
+# First run: saves baselines/homepage.png and returns True.
+# Later runs: compares against it and saves a diff image on failure.
+passed = tester.assert_matches(
+    driver,           # a WebDriver, WebElement, PNG bytes or a file path
+    "homepage",
+    method="ssim",    # "pixel", "ssim" or "phash"
+    threshold=5,      # SSIM: allowed difference in percent (score of 0.95 or better)
 )
 
-# Capture current state
-guard.capture("homepage", driver)
-
-# Compare against baseline (creates baseline if first run)
-result = guard.compare("homepage")
-
-if not result.passed:
-    print(f"Visual regression detected!")
-    print(f"Similarity score: {result.similarity:.2%}")
-    print(f"Difference regions: {result.diff_regions}")
-    result.save_diff_image("./reports/homepage_diff.png")
+if passed:
+    print("Visual check passed!")
 else:
-    print(f"Visual check passed! Similarity: {result.similarity:.2%}")
+    print("Visual regression detected! See snapshots/diffs/homepage_diff.png")
 
 driver.quit()
 ```
 
+`assert_matches` returns `True` or `False`. The threshold depends on the method: for `"pixel"` and `"ssim"` it is the allowed difference in percent, and for `"phash"` it is the allowed Hamming distance between the two hashes (0 to 64).
+
 ### Handling Dynamic Content
 
-Real applications have dynamic content: timestamps, usernames, advertisements. Visual Guard provides region masking:
+Real applications have dynamic content: timestamps, usernames, advertisements. Visual Guard lets you exclude regions from the comparison:
 
 ```python
-from visualguard import VisualGuard, MaskRegion
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from visual_guard import VisualTester
 
-guard = VisualGuard(baseline_dir="./baselines")
+driver = webdriver.Chrome()
+driver.set_window_size(1280, 900)
+driver.get("https://app.example.com/dashboard")
+tester = VisualTester(baseline_dir="baselines", snapshot_dir="snapshots")
 
-# Define regions to ignore during comparison
-masks = [
-    # By coordinates (x, y, width, height)
-    MaskRegion(name="header_time", x=800, y=10, width=150, height=30),
-    
-    # By CSS selector (element found and masked automatically)
-    MaskRegion(name="user_avatar", selector="#user-avatar"),
-    MaskRegion(name="ad_banner", selector=".advertisement"),
-    MaskRegion(name="timestamp", selector="[data-testid='timestamp']"),
-]
+# Fixed area by coordinates: (x, y, width, height)
+header_clock = (800, 10, 150, 30)
 
-result = guard.compare("dashboard", masks=masks)
+# An element's area, taken from its position on the page
+# (on high DPI screens, multiply by window.devicePixelRatio)
+r = driver.find_element(By.ID, "email").rect
+email_box = (int(r["x"]), int(r["y"]), int(r["width"]), int(r["height"]))
+
+# Masked areas are painted out in both images before comparing
+passed = tester.assert_matches(
+    driver, "dashboard", method="ssim", threshold=5,
+    exclude_regions=[header_clock, email_box],
+)
+driver.quit()
 ```
 
-### Dynamic Mask Discovery
+### Finding Dynamic Regions
 
-Don't know what's dynamic? Let Visual Guard figure it out:
+Visual Guard does not discover dynamic regions for you. A quick way to find them is to load the same page twice and compare with zero tolerance. The diff image shows everything that changed between the two loads:
 
 ```python
-from visualguard import discover_dynamic_regions
+import time
+from selenium import webdriver
+from visual_guard import VisualTester
 
-# Load the same page 3 times, detect what changes
-dynamic_regions = discover_dynamic_regions(
-    driver,
-    url="https://app.example.com/dashboard",
-    runs=3,
-    interval_seconds=2
-)
+driver = webdriver.Chrome()
+driver.set_window_size(1280, 900)
+tester = VisualTester(baseline_dir="probe/baselines", snapshot_dir="probe/snapshots")
 
-print(f"Detected {len(dynamic_regions)} dynamic regions:")
-for region in dynamic_regions:
-    print(f"  {region.selector}: changes {region.change_frequency}% of the time")
+# Load the page twice and compare with zero tolerance.
+driver.get("https://app.example.com/dashboard")
+tester.assert_matches(driver, "dashboard_probe", method="pixel", threshold=0)
 
-# Output:
-# Detected 3 dynamic regions:
-#   #notification-count: changes 100% of the time
-#   .timestamp: changes 100% of the time
-#   .chart-tooltip: changes 67% of the time
+time.sleep(3)
+driver.refresh()
+same = tester.assert_matches(driver, "dashboard_probe", method="pixel", threshold=0)
+
+if not same:
+    print("Dynamic areas are highlighted in probe/snapshots/diffs/dashboard_probe_diff.png")
+driver.quit()
 ```
 
 ---
@@ -1727,76 +1748,90 @@ for region in dynamic_regions:
 
 ### Cross-Browser Visual Tests
 
+Visual Guard compares images; it does not start browsers. Create each browser and window size with Selenium and give each combination its own baseline name:
+
 ```python
-from visualguard import VisualGuard, BrowserConfig
+from selenium import webdriver
+from visual_guard import VisualTester
 
-# Define all browser/viewport combinations to test
-configurations = [
-    # Desktop browsers
-    BrowserConfig(browser="chrome", width=1920, height=1080),
-    BrowserConfig(browser="firefox", width=1920, height=1080),
-    BrowserConfig(browser="edge", width=1920, height=1080),
-    
-    # Mobile viewports (using Chrome)
-    BrowserConfig(browser="chrome", width=375, height=812, device="iPhone 12"),
-    BrowserConfig(browser="chrome", width=414, height=896, device="iPhone 11"),
-    BrowserConfig(browser="chrome", width=768, height=1024, device="iPad"),
-]
+viewports = [(1920, 1080), (768, 1024), (375, 812)]
+tester = VisualTester(baseline_dir="baselines/responsive", snapshot_dir="snapshots/responsive")
 
-guard = VisualGuard(baseline_dir="./baselines/multi-browser")
-
-for config in configurations:
-    driver = create_driver_for_config(config)
+for width, height in viewports:
+    options = webdriver.ChromeOptions()
+    options.add_argument(f"--window-size={width},{height}")
+    driver = webdriver.Chrome(options=options)
     driver.get("https://example.com")
-    
-    # Each config gets its own baseline
-    capture_name = f"homepage_{config.browser}_{config.width}x{config.height}"
-    guard.capture(capture_name, driver)
-    result = guard.compare(capture_name)
-    
-    print(f"{capture_name}: {'PASS' if result.passed else 'FAIL'}")
+
+    # Each browser and size gets its own baseline
+    name = f"homepage_chrome_{width}x{height}"
+    passed = tester.assert_matches(driver, name, method="ssim", threshold=5)
+    print(f"{name}: {'PASS' if passed else 'FAIL'}")
     driver.quit()
 ```
 
+For other browsers, repeat the loop with `webdriver.Firefox()` or `webdriver.Edge()` and put the browser name in the baseline name. Never compare a Firefox screenshot against a Chrome baseline.
+
 ### Full-Page Screenshots
 
-For pages with scroll:
+For pages with scroll, give Visual Guard a full page image. One simple way in Chrome is to make the window as tall as the page:
 
 ```python
-from visualguard import VisualGuard, FullPageMode
+from selenium import webdriver
+from visual_guard import VisualTester
 
-guard = VisualGuard(
-    baseline_dir="./baselines",
-    full_page_mode=FullPageMode.SCROLL_STITCH  # Scroll and stitch screenshots
-)
+driver = webdriver.Chrome()
+driver.get("https://en.wikipedia.org/wiki/Software_testing")
+tester = VisualTester(baseline_dir="baselines", snapshot_dir="snapshots")
 
-# Captures entire page, not just viewport
-guard.capture("long_page", driver)
+# Make the window as tall as the page, then take one screenshot
+# (most reliable in headless mode, where the window is not limited by the screen)
+height = driver.execute_script("return document.documentElement.scrollHeight")
+driver.set_window_size(1280, height)
+
+passed = tester.assert_matches(driver, "long_page", method="phash", threshold=8)
+driver.quit()
 ```
+
+Firefox can also return a full page image directly with `driver.get_full_page_screenshot_as_png()`, which you can pass to `assert_matches` as PNG bytes.
 
 ---
 
 ## HTML Report Generation
 
 ```python
-from visualguard import generate_report
+import os
+from selenium import webdriver
+from visual_guard import VisualTester, SimpleReporter
 
-# After running all visual tests
-generate_report(
-    results_dir="./visual_results",
-    output_file="./reports/visual_regression.html",
-    include_thumbnails=True,
-    side_by_side=True,
-    diff_highlighting=True
-)
+driver = webdriver.Chrome()
+driver.set_window_size(1280, 900)
+tester = VisualTester(baseline_dir="baselines", snapshot_dir="snapshots")
+reporter = SimpleReporter(title="Visual Regression Report")
+
+pages = {"homepage": "https://example.com", "iana": "https://www.iana.org/help/example-domains"}
+
+for name, url in pages.items():
+    driver.get(url)
+    passed = tester.assert_matches(driver, name, method="ssim", threshold=5)
+    reporter.add_result(
+        name,
+        "PASSED" if passed else "FAILED",
+        baseline_path=f"baselines/{name}.png",
+        snapshot_path=f"snapshots/{name}.png",
+        diff_path=None if passed else f"snapshots/diffs/{name}_diff.png",
+    )
+
+driver.quit()
+os.makedirs("reports", exist_ok=True)
+reporter.generate("reports/visual_report.html")
 ```
 
 **The report includes:**
-- Thumbnail grid of all comparisons
-- Side-by-side baseline vs. current
-- Difference highlighting overlay (pink/red shows changes)
-- Filtering by status (passed/failed)
-- One-click baseline update for intentional changes
+
+- One card per comparison with its PASSED or FAILED status 
+- Baseline, actual and diff images side by side 
+- Images embedded in the HTML file, so it is easy to attach to a CI run
 
 ---
 
@@ -1805,68 +1840,58 @@ generate_report(
 ```python
 """
 Complete visual testing workflow example.
-Creates baselines on first run, compares on subsequent runs.
+Creates baselines on first run, compares on later runs.
 """
-from selenium import webdriver
-from visualguard import VisualGuard, MaskRegion
 import os
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from visual_guard import VisualTester, SimpleReporter
+
+def element_box(driver, css):
+    """Return (x, y, width, height) of an element, for exclude_regions."""
+    r = driver.find_element(By.CSS_SELECTOR, css).rect
+    return (int(r["x"]), int(r["y"]), int(r["width"]), int(r["height"]))
 
 def run_visual_tests():
     driver = webdriver.Chrome()
-    guard = VisualGuard(baseline_dir="./baselines", threshold=0.95)
-    
+    driver.set_window_size(1280, 900)
+    tester = VisualTester(baseline_dir="baselines", snapshot_dir="snapshots")
+    reporter = SimpleReporter()
+
     test_cases = [
-        {
-            "name": "google_homepage",
-            "url": "https://www.google.com",
-            "masks": [
-                MaskRegion(name="doodle", selector=".lnXdpd"),  # Google Doodle changes
-            ]
-        },
-        {
-            "name": "example_domain",
-            "url": "https://example.com",
-            "masks": []
-        }
+        {"name": "example_domain", "url": "https://example.com", "mask": []},
+        {"name": "iana_help", "url": "https://www.iana.org/help/example-domains",
+         "mask": ["header"]},  # ignore the site header
     ]
-    
+
     results = []
-    
     for test in test_cases:
         driver.get(test["url"])
-        
-        # Wait for page to stabilize
-        import time
-        time.sleep(2)
-        
-        # Capture
-        guard.capture(test["name"], driver)
-        
-        # Compare
-        result = guard.compare(test["name"], masks=test["masks"])
-        results.append({
-            "name": test["name"],
-            "passed": result.passed,
-            "similarity": result.similarity
-        })
-        
-        # Save diff image if failed
-        if not result.passed:
-            os.makedirs("./diffs", exist_ok=True)
-            result.save_diff_image(f"./diffs/{test['name']}_diff.png")
-    
+        regions = [element_box(driver, css) for css in test["mask"]]
+
+        passed = tester.assert_matches(
+            driver, test["name"], method="ssim", threshold=5,
+            exclude_regions=regions,
+        )
+        results.append((test["name"], passed))
+        reporter.add_result(
+            test["name"], "PASSED" if passed else "FAILED",
+            baseline_path=f"baselines/{test['name']}.png",
+            snapshot_path=f"snapshots/{test['name']}.png",
+            diff_path=None if passed else f"snapshots/diffs/{test['name']}_diff.png",
+        )
+
     driver.quit()
-    
+    os.makedirs("reports", exist_ok=True)
+    reporter.generate("reports/visual_report.html")
+
     # Print summary
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("VISUAL TEST RESULTS")
-    print("="*50)
-    for r in results:
-        status = "✅ PASS" if r["passed"] else "❌ FAIL"
-        print(f"{status} | {r['name']} | Similarity: {r['similarity']:.2%}")
-    
-    passed = sum(1 for r in results if r["passed"])
-    print(f"\nTotal: {passed}/{len(results)} passed")
+    print("=" * 50)
+    for name, passed in results:
+        print(f"{'✅ PASS' if passed else '❌ FAIL'} | {name}")
+    print(f"\nTotal: {sum(p for _, p in results)}/{len(results)} passed")
 
 if __name__ == "__main__":
     run_visual_tests()
@@ -1877,7 +1902,7 @@ if __name__ == "__main__":
 ## 📋 Chapter 4 Summary
 
 | Concept | Key Takeaway |
-|---------|-------------|
+| --- | --- |
 | Functional vs Visual | Functional tests miss layout/style bugs |
 | Pixel comparison | Too brittle, constant false positives |
 | SSIM | Compares structure, matches human perception |
@@ -1888,6 +1913,7 @@ if __name__ == "__main__":
 ---
 
 # PART III: AUTHENTICATION OPTIMIZATION
+
 ## The Fastest Login Is No Login At All
 
 > *"Every second spent logging in is a second not spent testing."*
@@ -1896,27 +1922,34 @@ if __name__ == "__main__":
 
 # Chapter 5: The Hidden Cost of Authentication
 
+**What you’ll learn** Measure how authentication affects suite time and isolation.
+
+**Put it to work** Separate login coverage from tests that only need an authenticated fixture.
+
 ## The 40% Tax on Test Execution
 
 Authentication in enterprise applications typically involves:
-1. Loading the login page
-2. Entering credentials
-3. Submitting the form
-4. Waiting for MFA/2FA (if applicable)
-5. Handling redirects
+
+1. Loading the login page 
+2. Entering credentials 
+3. Submitting the form 
+4. Waiting for MFA/2FA (if applicable) 
+5. Handling redirects 
 6. Waiting for dashboard to load
 
 **Average time: 8-15 seconds per login.**
 
 For a test suite with 500 tests, each starting with a fresh login:
-- 500 tests × 10 seconds = **83 minutes** just on authentication
+
+- 500 tests × 10 seconds = **83 minutes** just on authentication 
 - That's 23% of a 6-hour test run spent logging in
 
 ### The Deeper Problem: Test Isolation Requirements
 
 Best practices dictate that tests should be isolated. Each test should:
-- Start from a known state
-- Not depend on previous tests
+
+- Start from a known state 
+- Not depend on previous tests 
 - Clean up after itself
 
 This usually means: **fresh browser session per test = login per test.**
@@ -1967,7 +2000,7 @@ Before we can skip login, we need to understand what "being logged in" means at 
 ### The Four Types of Browser State
 
 | Storage Type | Persists After Close? | Accessible By | Size Limit |
-|-------------|----------------------|---------------|------------|
+| --- | --- | --- | --- |
 | **Cookies** | Depends on `Expires` | Server + JavaScript | ~4KB per cookie |
 | **LocalStorage** | Yes | JavaScript only | ~5MB |
 | **SessionStorage** | No (tab-scoped) | JavaScript only | ~5MB |
@@ -1992,9 +2025,10 @@ def authenticated_driver():
 ```
 
 **Problems:**
-- Tests aren't isolated
-- One test's actions affect subsequent tests
-- Cookie expiration causes cascading failures
+
+- Tests aren't isolated 
+- One test's actions affect subsequent tests 
+- Cookie expiration causes cascading failures 
 - State pollution is hard to debug
 
 ### Approach 2: API Token Injection
@@ -2007,33 +2041,39 @@ def fast_login(driver, username, password):
         json={"username": username, "password": password}
     )
     token = response.json()["token"]
-    
+
     # Navigate first (required for cookie domain)
     driver.get("https://app.example.com")
-    
+
     # Set cookie
     driver.add_cookie({
         "name": "auth_token",
         "value": token,
         "domain": "app.example.com"
     })
-    
+
     driver.refresh()
 ```
 
 **Improvements:**
-- Much faster than UI login
+
+- Much faster than UI login 
 - Bypasses MFA in some cases
 
 **Remaining Problems:**
-- Only works if API endpoint exists and is accessible
-- Single cookie may not be enough (CSRF tokens, etc.)
-- LocalStorage/SessionStorage not populated
+
+- Only works if API endpoint exists and is accessible 
+- Single cookie may not be enough (CSRF tokens, etc.) 
+- LocalStorage/SessionStorage not populated 
 - Application-specific initialization not triggered
 
 ---
 
 # Chapter 6: Selenium Teleport - Complete Browser State Restoration
+
+**What you’ll learn** Restore state without mixing identities or expired sessions.
+
+**Put it to work** Check expiry and account identity after restoration, then test the logged-out path.
 
 ## The Teleportation Pattern
 
@@ -2041,29 +2081,40 @@ def fast_login(driver, username, password):
 
 ### What Gets Captured
 
-```python
+A saved state file is plain JSON (it can also be encrypted). This is what `save_state()` writes:
+
+```json
 {
-    "captured_at": "2024-06-15T10:30:00Z",
-    "url": "https://app.example.com/dashboard",
-    
-    "cookies": [
-        {"name": "session_id", "value": "abc123", "domain": ".example.com", ...},
-        {"name": "csrf_token", "value": "xyz789", "domain": "app.example.com", ...},
-        {"name": "_ga", "value": "GA1.2...", "domain": ".example.com", ...}
-    ],
-    
-    "local_storage": {
-        "user_profile": "{\"id\": 123, \"name\": \"Test User\"}",
-        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        "app_settings": "{\"theme\": \"dark\", \"notifications\": true}"
+    "metadata": {
+        "saved_at": "2026-06-15T10:30:00+00:00",
+        "source_url": "https://app.example.com/dashboard",
+        "source_domain": "https://app.example.com",
+        "version": "2.1",
+        "encrypted": false
     },
-    
-    "session_storage": {
-        "current_page_state": "{\"tab\": \"dashboard\", \"filters\": []}",
-        "form_draft": null
-    }
+    "cookies": [
+        {
+            "domain": "app.example.com",
+            "expiry": 1793028573,
+            "httpOnly": false,
+            "name": "session_id",
+            "path": "/",
+            "sameSite": "Lax",
+            "secure": true,
+            "value": "abc123"
+        }
+    ],
+    "localStorage": {
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    },
+    "sessionStorage": {
+        "tab": "dashboard"
+    },
+    "indexedDB": {}
 }
 ```
+
+Cookies, localStorage and sessionStorage are restored. IndexedDB is only recorded for information and is not restored.
 
 ---
 
@@ -2076,148 +2127,160 @@ pip install selenium-teleport
 ### State Capture Workflow
 
 ```python
+import os
 from selenium import webdriver
-from selenium_teleport import BrowserState
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium_teleport import save_state
 
 # Step 1: Perform login (one-time setup)
 driver = webdriver.Chrome()
 driver.get("https://app.example.com/login")
 
-# Option A: Manual login
-input("Log in manually, then press Enter...")
-
-# Option B: Automated login
 driver.find_element(By.ID, "email").send_keys("user@example.com")
-driver.find_element(By.ID, "password").send_keys("secure_password")
+driver.find_element(By.ID, "password").send_keys(os.environ["APP_PASSWORD"])
 driver.find_element(By.ID, "login-btn").click()
 
 # Wait for complete authentication
 WebDriverWait(driver, 30).until(
-    EC.presence_of_element_located((By.ID, "dashboard"))
+    EC.visibility_of_element_located((By.ID, "dashboard"))
 )
 
-# Step 2: Capture the authenticated state
-state = BrowserState.capture(driver)
+# Step 2: Save cookies, localStorage and sessionStorage for this origin
+state = save_state(driver, "states/admin_user.json")
 
-# Step 3: Save to file for reuse
-state.save("./states/admin_user.json")
-
-print(f"✓ Captured {len(state.cookies)} cookies")
-print(f"✓ Captured {len(state.local_storage)} localStorage items")
-print(f"✓ Captured {len(state.session_storage)} sessionStorage items")
+print(f"✓ Captured {len(state['cookies'])} cookies")
+print(f"✓ Captured {len(state['localStorage'])} localStorage items")
+print(f"✓ Captured {len(state['sessionStorage'])} sessionStorage items")
 
 driver.quit()
 ```
 
+If the login needs a person (for example a one time code), open the login page, log in by hand, then call `save_state()`.
+
 ### State Restoration in Tests
 
 ```python
+import pytest
 from selenium import webdriver
-from selenium_teleport import BrowserState
+from selenium.webdriver.common.by import By
+from selenium_teleport import load_state
 
 @pytest.fixture
 def authenticated_driver():
     driver = webdriver.Chrome()
-    
-    # CRITICAL: Navigate to the domain first
-    # Browsers enforce Same-Origin Policy for cookies
-    driver.get("https://app.example.com")
-    
-    # Restore the captured state
-    state = BrowserState.load("./states/admin_user.json")
-    state.restore(driver)
-    
-    # Refresh to apply state
-    driver.refresh()
-    
+
+    # load_state opens the site first (cookies can only be added for the
+    # page you are on), adds cookies and storage, then goes to the destination
+    load_state(driver, "states/admin_user.json", "https://app.example.com/dashboard")
+
     yield driver
     driver.quit()
 
 def test_dashboard_loads(authenticated_driver):
     # Already logged in! No login steps needed
-    assert "Dashboard" in authenticated_driver.title
+    assert authenticated_driver.find_element(By.ID, "dashboard").is_displayed()
 
-def test_user_can_view_settings(authenticated_driver):
-    authenticated_driver.get("https://app.example.com/settings")
-    assert authenticated_driver.find_element(By.ID, "settings-form").is_displayed()
+def test_session_cookie_restored(authenticated_driver):
+    assert authenticated_driver.get_cookie("session_id") is not None
+```
+
+Before loading, `load_state()` checks that the destination is on the same site the state came from, so a state file for one site is never loaded into another.
+
+### The Teleport Context Manager
+
+For scripts that should log in only when needed, the `Teleport` context manager loads the state if the file exists and saves it again when the block finishes:
+
+```python
+import os
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium_teleport import Teleport
+
+def login(driver):
+    driver.get("https://app.example.com/login")
+    driver.find_element(By.ID, "email").send_keys("user@example.com")
+    driver.find_element(By.ID, "password").send_keys(os.environ["APP_PASSWORD"])
+    driver.find_element(By.ID, "login-btn").click()
+
+driver = webdriver.Chrome()
+
+# Saves the state automatically when the block finishes without an error
+with Teleport(driver, "states/admin_user.json") as teleport:
+    if teleport.has_state():
+        teleport.load("https://app.example.com/dashboard")
+    else:
+        login(driver)
+
+    assert driver.find_element(By.ID, "dashboard").is_displayed()
+
+driver.quit()
 ```
 
 ---
 
-## 🔍 Deep Dive: Handling Same-Origin Policy
+## 🔍 Deep Dive: Cookies Must Match the Current Page
 
-Browsers prevent setting cookies for domains you haven't visited. This is a security feature called the Same-Origin Policy.
+WebDriver only lets you add a cookie for the domain of the page that is currently open. A new browser starts on a blank page with no domain, so cookies cannot be added yet.
 
 **The Problem:**
+
 ```python
+from selenium import webdriver
+from selenium.common.exceptions import InvalidCookieDomainException
+
 driver = webdriver.Chrome()
-# Current URL is about:blank
+# Current URL is data:, (a blank page with no domain)
 
-driver.add_cookie({"name": "token", "value": "abc", "domain": "app.example.com"})
-# Silently fails! No error, but cookie isn't set
+try:
+    driver.add_cookie({"name": "token", "value": "abc", "domain": "app.example.com"})
+except InvalidCookieDomainException as e:
+    print(f"Rejected: {e.msg}")  # the cookie is not set
+
+# Open a page on the cookie's domain first, then add it
+driver.get("https://app.example.com/")
+driver.add_cookie({"name": "token", "value": "abc"})
+print(driver.get_cookie("token")["value"])  # abc
+driver.quit()
 ```
 
-**Selenium Teleport's Solution:**
+**Selenium Teleport's Solution:** `load_state()` does these steps for you:
 
-```python
-def restore(self, driver):
-    # Group cookies by domain
-    domains = set(c["domain"] for c in self.cookies)
-    
-    for domain in domains:
-        # Navigate to each domain first
-        clean_domain = domain.lstrip(".")
-        driver.get(f"https://{clean_domain}")
-        
-        # Now cookies for this domain can be set
-        domain_cookies = [c for c in self.cookies if c["domain"] == domain]
-        for cookie in domain_cookies:
-            try:
-                # Remove unsupported keys that Selenium doesn't accept
-                safe_cookie = {k: v for k, v in cookie.items() 
-                               if k in ["name", "value", "domain", "path", 
-                                        "secure", "httpOnly", "expiry", "sameSite"]}
-                driver.add_cookie(safe_cookie)
-            except Exception as e:
-                logging.warning(f"Failed to set cookie {cookie['name']}: {e}")
-```
+1. Checks that the destination URL belongs to the site the state was saved from 
+2. Drops cookies that have already expired 
+3. Opens the base URL of that site, so the browser is on the right domain 
+4. Adds the cookies, then fills localStorage and sessionStorage 
+5. Navigates to the destination URL, which now loads as a logged in user
 
 ---
 
 ## Multi-User State Management
 
-For tests that need different user roles:
+For tests that need different user roles, save one state file per role and load the right file in a parameterized fixture:
 
 ```python
-from selenium_teleport import StateManager
+import pytest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium_teleport import load_state
 
-# Setup: Capture states for different user roles
-manager = StateManager(states_dir="./states")
+# One state file per role, captured once with save_state():
+#   states/admin_user.json, states/standard_user.json
 
-# (Run once for each user type)
-# manager.capture("admin_user", driver)
-# manager.capture("standard_user", driver)
-# manager.capture("readonly_user", driver)
-
-# In tests: Parameterized fixture
 @pytest.fixture(params=["admin_user", "standard_user"])
 def user_driver(request):
     driver = webdriver.Chrome()
-    driver.get("https://app.example.com")
-    
-    manager = StateManager(states_dir="./states")
-    manager.restore(request.param, driver)
-    driver.refresh()
-    
+    load_state(driver, f"states/{request.param}.json", "https://app.example.com/dashboard")
     yield driver, request.param
     driver.quit()
 
 def test_permission_based_access(user_driver):
     driver, user_type = user_driver
-    
+
     # Navigate to admin page
     driver.get("https://app.example.com/admin")
-    
+
     if user_type == "admin_user":
         assert driver.find_element(By.ID, "admin-panel").is_displayed()
     else:
@@ -2229,32 +2292,31 @@ def test_permission_based_access(user_driver):
 
 ## State Freshness and Expiration
 
-States don't last forever—sessions expire, tokens become invalid.
+States don't last forever: sessions expire, tokens become invalid.
 
 ```python
-from selenium_teleport import BrowserState
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from selenium import webdriver
+from selenium_teleport import get_state_info, load_state, ExpiredSessionError
 
-state = BrowserState.load("./states/admin_user.json")
+info = get_state_info("states/admin_user.json")
+saved_at = datetime.fromisoformat(info["saved_at"])
 
-# Check if state is stale
-if state.captured_at < datetime.now() - timedelta(hours=24):
+# Check if the state is stale
+if saved_at < datetime.now(timezone.utc) - timedelta(hours=24):
     print("⚠️ State is more than 24 hours old - may need refresh")
+print(f"{info['cookie_count']} cookies saved for {info['source_domain']}")
 
-# Check for expired cookies
-expired = [
-    c["name"] for c in state.cookies 
-    if c.get("expiry") and c["expiry"] < datetime.now().timestamp()
-]
-if expired:
-    print(f"⚠️ These cookies have expired: {expired}")
-
-# Automatic freshness check during restore
+driver = webdriver.Chrome()
 try:
-    state.restore(driver, strict=True)  # Raises if any cookie expired
-except StateExpiredError as e:
+    # Expired cookies are dropped before loading.
+    # If every saved cookie has expired, ExpiredSessionError is raised.
+    load_state(driver, "states/admin_user.json", "https://app.example.com/dashboard")
+except ExpiredSessionError as e:
     print(f"State invalid: {e}")
-    # Re-authenticate and capture new state
+    # Log in again and save a new state
+finally:
+    driver.quit()
 ```
 
 ### CI/CD Integration: Auto-Refresh Pattern
@@ -2273,10 +2335,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Refresh admin state
         run: python scripts/refresh_states.py
-        
+
       - name: Upload new states
         uses: actions/upload-artifact@v4
         with:
@@ -2289,7 +2351,7 @@ jobs:
 ## Performance Impact
 
 | Scenario | Time Per Test | For 500 Tests |
-|----------|---------------|---------------|
+| --- | --- | --- |
 | Full UI Login | 10-15s | 83+ minutes |
 | API Token + Cookie | 3-5s | 25-40 minutes |
 | Selenium Teleport | **0.5-1s** | **4-8 minutes** |
@@ -2320,13 +2382,19 @@ driver.add_cookie({
 `Secure` cookies only work on HTTPS:
 
 ```python
-# ❌ WRONG: HTTP won't accept Secure cookies
+from selenium import webdriver
+
+driver = webdriver.Chrome()
+
+# ❌ WRONG: an http page won't accept Secure cookies
 driver.get("http://app.example.com")
-driver.add_cookie({"name": "token", "secure": True})  # Silently fails
+driver.add_cookie({"name": "token", "value": "abc", "secure": True})
+print(driver.get_cookie("token"))  # None: no error, but the cookie was not set
 
 # ✅ CORRECT: Use HTTPS
 driver.get("https://app.example.com")
-driver.add_cookie({"name": "token", "secure": True})  # Works
+driver.add_cookie({"name": "token", "value": "abc", "secure": True})  # Works
+driver.quit()
 ```
 
 ### Pitfall 3: SameSite Cookies
@@ -2351,69 +2419,51 @@ driver.add_cookie({
 
 ```python
 """
-Complete Selenium Teleport workflow.
-Run this once to capture state, then use in tests.
+Complete Selenium Teleport workflow on a public demo shop.
+Run it once to capture state, then reuse the state file in tests.
 """
 from selenium import webdriver
-from selenium_teleport import BrowserState, StateManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import os
+from selenium_teleport import save_state, load_state
+
+STATE_FILE = "demo_states/saucedemo.json"
 
 def capture_state_demo():
-    """Demo: Capture state from Google (no login, just session)"""
+    """Log in once and save the session."""
     driver = webdriver.Chrome()
-    driver.get("https://www.google.com")
-    
-    # Interact to generate some state
-    search_box = driver.find_element(By.NAME, "q")
-    search_box.send_keys("Selenium Teleport")
-    search_box.submit()
-    
-    # Wait for results
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "search"))
-    )
-    
-    # Capture state
-    state = BrowserState.capture(driver)
-    
-    # Save
-    os.makedirs("./demo_states", exist_ok=True)
-    state.save("./demo_states/google_session.json")
-    
+    driver.get("https://www.saucedemo.com/")
+    driver.find_element(By.ID, "user-name").send_keys("standard_user")
+    driver.find_element(By.ID, "password").send_keys("secret_sauce")
+    driver.find_element(By.ID, "login-button").click()
+    WebDriverWait(driver, 10).until(EC.url_contains("/inventory.html"))
+
+    state = save_state(driver, STATE_FILE)
     print(f"✓ Captured state from URL: {driver.current_url}")
-    print(f"  Cookies: {len(state.cookies)}")
-    print(f"  LocalStorage items: {len(state.local_storage)}")
-    
+    print(f"  Cookies: {len(state['cookies'])}")
+    print(f"  LocalStorage items: {len(state['localStorage'])}")
     driver.quit()
-    return state
 
 def restore_state_demo():
-    """Demo: Restore the captured state"""
+    """Open a fresh browser and go straight to a page behind the login."""
     driver = webdriver.Chrome()
-    
-    # Must navigate to domain first
-    driver.get("https://www.google.com")
-    
-    # Load and restore state
-    state = BrowserState.load("./demo_states/google_session.json")
-    state.restore(driver)
-    
-    # Verify restoration
-    cookies_count = len(driver.get_cookies())
-    print(f"✓ Restored {cookies_count} cookies")
-    
+    load_state(driver, STATE_FILE, "https://www.saucedemo.com/inventory.html")
+
+    # Verify restoration: the product list is visible without logging in
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.CLASS_NAME, "inventory_list"))
+    )
+    print(f"✓ Restored {len(driver.get_cookies())} cookies, still logged in")
     driver.quit()
 
 if __name__ == "__main__":
     print("Step 1: Capturing state...")
     capture_state_demo()
-    
+
     print("\nStep 2: Restoring state...")
     restore_state_demo()
-    
+
     print("\n✅ Teleport demo complete!")
 ```
 
@@ -2422,18 +2472,20 @@ if __name__ == "__main__":
 ## 📋 Chapters 5-6 Summary
 
 | Concept | Key Takeaway |
-|---------|-------------|
+| --- | --- |
 | Auth Cost | Login can consume 20-40% of test execution time |
 | Browser State | Auth stored in cookies, localStorage, sessionStorage |
-| Same-Origin Policy | Must navigate to domain before setting cookies |
+| Cookie Domains | A cookie can only be added while the browser is on a page of the cookie's domain |
 | Selenium Teleport | Capture and restore complete auth state |
 | Multi-User | Manage different user role states for comprehensive testing |
 | Freshness | States expire; automate refresh in CI |
 
 ---
 
-
 # PART IV: STEALTH & BOT EVASION
+
+![Stealth Automation Techniques](assets/images/stealth.png)
+
 ## Testing Behind Modern Security
 
 > *"When the website thinks you're a bot, you can't test anything."*
@@ -2441,6 +2493,10 @@ if __name__ == "__main__":
 ---
 
 # Chapter 7: Understanding Modern Bot Detection
+
+**What you’ll learn** Understand why automated and interactive browser sessions differ.
+
+**Put it to work** Compare signals in an authorized test environment and document the supported access path.
 
 ## Why Your Tests Get Blocked
 
@@ -2528,8 +2584,10 @@ ctx.textBaseline = 'top';
 ctx.font = '14px Arial';
 ctx.fillText('fingerprint', 2, 2);
 
-const hash = canvas.toDataURL().hashCode();
-// Hash is unique per browser/OS/GPU combination
+// Hash the image data (strings have no built-in hashCode in JavaScript)
+const data = new TextEncoder().encode(canvas.toDataURL());
+const digest = await crypto.subtle.digest('SHA-256', data);
+// The hash differs between browser/OS/GPU combinations
 ```
 
 ### Detection Vector 4: Plugin Detection
@@ -2537,8 +2595,9 @@ const hash = canvas.toDataURL().hashCode();
 ```javascript
 // Real browsers have plugins
 console.log(navigator.plugins.length);
-// Real Chrome: 3-5 plugins (PDF Viewer, etc.)
-// Headless: 0 plugins
+// Current Chrome (headed or new headless): 5 PDF viewer entries
+// Old headless and many automation setups: 0
+// A zero count is suspicious, but a normal count proves nothing
 
 // Plugin details also checked
 for (let plugin of navigator.plugins) {
@@ -2555,7 +2614,7 @@ driver = webdriver.Chrome()
 # Detection services see:
 # ✗ navigator.webdriver = true
 # ✗ No WebGL or suspicious WebGL
-# ✗ No plugins
+# ✗ Empty navigator.plugins in old headless mode
 # ✗ Suspicious browser automation flags in Chrome args
 # ✗ Inhuman interaction speed (clicks happen instantly)
 # ✗ No mouse movement between clicks
@@ -2598,7 +2657,7 @@ document.addEventListener('keydown', e => {
 ### Click Behavior
 
 | Metric | Human | Bot |
-|--------|-------|-----|
+| --- | --- | --- |
 | Time on page before first click | 2-10 seconds | < 500ms |
 | Mouse movement before click | Curved path | None or straight |
 | Click position | Slightly random | Exact center |
@@ -2608,45 +2667,44 @@ document.addEventListener('keydown', e => {
 
 # Chapter 8: SB Stealth Wrapper - Becoming Invisible
 
-## Architecture of Stealth
+**What you’ll learn** Evaluate browser compatibility techniques and their limits.
 
-**SB Stealth Wrapper** (StealthAutomation) builds on SeleniumBase to provide multi-layered stealth:
+**Put it to work** Record the browser and tool versions and retain a standard WebDriver baseline.
+
+## 🔍 Deep Dive: The Stealth Architecture
+
+**SB Stealth Wrapper** (`sb-stealth-wrapper` on PyPI, source in the StealthAutomation repository) is a small wrapper around SeleniumBase UC mode. It adds these layers:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    STEALTH ARCHITECTURE                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  LAYER 1: ENVIRONMENT DETECTION                                 │
+│  LAYER 1: DRIVER                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │ • Detects CI vs Local development                        │   │
-│  │ • Configures display (Xvfb on Linux headless)           │   │
-│  │ • Sets appropriate headless mode                         │   │
-│  │ • Handles Docker/container environments                  │   │
+│  │ • SeleniumBase UC mode (undetected Chrome)               │   │
+│  │ • On Linux, headed mode runs inside Xvfb automatically   │   │
+│  │ • Optional proxy                                         │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                  │
-│  LAYER 2: BROWSER FINGERPRINT SPOOFING                          │
+│  LAYER 2: HUMAN-LIKE INPUT                                       │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │ • Patches navigator.webdriver → undefined                │   │
-│  │ • Injects consistent WebGL fingerprint                   │   │
-│  │ • Adds realistic plugins list                            │   │
-│  │ • Consistent user-agent across all signals               │   │
-│  │ • Spoofs hardware concurrency and device memory          │   │
+│  │ • Short random pause before each click                   │   │
+│  │ • Variable typing speed with rare corrected typos        │   │
+│  │ • Fallback to a JavaScript click if a click fails        │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                  │
-│  LAYER 3: HUMAN-LIKE BEHAVIOR                                   │
+│  LAYER 3: CHALLENGE HANDLING                                     │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │ • Random micro-delays between actions                    │   │
-│  │ • Simulated mouse movement paths                         │   │
-│  │ • Realistic typing patterns with variable speed          │   │
-│  │ • Random scroll behavior                                 │   │
+│  │ • Detects common challenge pages after navigation        │   │
+│  │ • Tries the UC mode captcha and Turnstile clicks         │   │
+│  │ • Bounded retries, then a clear exception                │   │
+│  │ • Optional success text that must be visible             │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                  │
-│  LAYER 4: NETWORK NORMALIZATION                                 │
+│  OPTIONAL: EXPERIMENTAL EVASION (off by default)                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │ • Standard TLS configuration                             │   │
-│  │ • Normal HTTP header ordering                            │   │
-│  │ • Proxy rotation support                                 │   │
+│  │ • Canvas and AudioContext noise strategies (opt in)      │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -2657,59 +2715,51 @@ document.addEventListener('keydown', e => {
 ## Installation
 
 ```bash
-pip install stealthautomation
+pip install sb-stealth-wrapper
 ```
 
 ## Basic Usage
 
 ```python
-from stealthautomation import StealthBrowser
+from sb_stealth_wrapper import StealthBot
 
-# Automatic environment configuration
-with StealthBrowser() as sb:
-    # Navigate with human-like behavior
-    sb.open("https://protected-site.com")
-    
-    # Interactions automatically include human patterns
-    sb.type("#email", "user@example.com")    # Types with realistic timing
-    sb.type("#password", "secret")
-    sb.click("#login-button")                 # Includes mouse movement
-    
-    # Assertions work normally
-    sb.assert_element("#dashboard")
+# success_criteria: text that proves you reached the real page
+with StealthBot(headless=False, success_criteria="Sign in") as bot:
+    # Opens the page, waits for it, and handles a challenge if one appears
+    bot.safe_get("https://app.example.com/login")
+
+    # Interactions include human-like timing
+    bot.smart_type("#email", "user@example.com")   # Variable typing speed
+    bot.smart_type("#password", "secret")
+    bot.smart_click("#login-btn")                  # UC mode click with fallbacks
+
+    # bot.sb is the full SeleniumBase API, so assertions work normally
+    bot.sb.assert_element("#dashboard")
+    bot.save_screenshot("after_login")             # debug_screenshots/after_login.png
 ```
 
 ---
 
 ## Configuration Options
 
-```python
-from stealthautomation import StealthBrowser, StealthConfig
+`StealthBot` keeps its options small. The fingerprint, typing and mouse settings in older drafts of this chapter are not part of the library; for anything more, use the SeleniumBase API through `bot.sb` or pass your own strategy objects (`driver_strategy`, `input_strategy`, `evasion_strategy`).
 
-config = StealthConfig(
-    # Headless options
-    headless=True,                    # True for CI, False for debugging
-    headless_mode="new",              # Chrome's new headless (less detectable)
-    
-    # Display configuration (Linux CI)
-    use_virtual_display=True,         # Use Xvfb
-    display_width=1920,
-    display_height=1080,
-    
-    # Fingerprint spoofing
-    webgl_vendor="Intel Inc.",
-    webgl_renderer="Intel Iris OpenGL Engine",
-    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
-    
-    # Behavior configuration
-    human_delay_min=0.1,              # Minimum delay between actions (seconds)
-    human_delay_max=0.3,              # Maximum delay
-    enable_mouse_movement=True,       # Simulate mouse paths
-    typing_speed_variance=0.3,        # 30% variance in typing speed
+```python
+from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError
+
+bot = StealthBot(
+    headless=False,                     # On Linux, False runs headed inside Xvfb
+    proxy=None,                         # e.g. "user:pass@host:port"
+    screenshot_path="debug_screenshots",
+    success_criteria="Welcome",         # Text that must be visible after safe_get()
 )
 
-with StealthBrowser(config=config) as sb:
-    sb.open("https://protected-site.com")
+try:
+    with bot:
+        bot.safe_get("https://app.example.com/")
+except ChallengeNotSolvedError:
+    # The challenge was still there after the bounded retries
+    raise
 ```
 
 ---
@@ -2718,38 +2768,41 @@ with StealthBrowser(config=config) as sb:
 
 ### Cloudflare Turnstile
 
-```python
-from stealthautomation import StealthBrowser
+Challenge handling runs inside `safe_get()` and before each `smart_click()`. Set `success_criteria` so the bot proves it reached the real page:
 
-with StealthBrowser() as sb:
-    sb.open("https://site-with-cloudflare.com")
-    
-    # Stealth wrapper handles the challenge automatically
-    # by appearing as a real browser
-    
-    # Wait for any challenge to complete
-    sb.wait_for_element("#main-content", timeout=30)
-    
+```python
+from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError
+
+with StealthBot(success_criteria="Welcome") as bot:
+    try:
+        # Waits for the page and tries to clear a challenge if one appears
+        bot.safe_get("https://site-with-cloudflare.com")
+    except ChallengeNotSolvedError:
+        bot.save_screenshot("challenge_failed")
+        raise
+
     # Continue with normal testing
-    sb.assert_text_visible("Welcome")
+    bot.sb.assert_text("Welcome")
 ```
 
 ### reCAPTCHA v3 (Invisible)
 
 ```python
-# reCAPTCHA v3 scores behavior, not puzzles
-# Stealth mode increases score by acting human
+import time
+from sb_stealth_wrapper import StealthBot
 
-with StealthBrowser() as sb:
-    sb.open("https://site-with-recaptcha.com")
-    
-    # Spend time on page like a real user
-    sb.scroll_down()
+# reCAPTCHA v3 scores behavior, not puzzles.
+# Give the page some normal activity before the protected action.
+with StealthBot(success_criteria="Sign in") as bot:
+    bot.safe_get("https://app.example.com/login")
+
+    # Spend time on page like a real user (bot.sb is SeleniumBase)
+    bot.sb.scroll_to_bottom()
     time.sleep(2)
-    sb.move_mouse_to_element("#some-section")
-    
+    bot.sb.hover("#email")
+
     # Now interact
-    sb.click("#protected-button")
+    bot.smart_click("#login-btn")
 ```
 
 ---
@@ -2766,60 +2819,55 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: |
-          pip install stealthautomation pytest
-      
-      - name: Install Chrome
-        run: |
-          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get install ./google-chrome-stable_current_amd64.deb
-      
-      - name: Install Xvfb (virtual display)
-        run: sudo apt-get install -y xvfb
-      
+          pip install sb-stealth-wrapper pytest
+
+      - name: Install Xvfb and Tk (needed for headed mode on Linux)
+        run: sudo apt-get install -y xvfb python3-tk
+
       - name: Run tests
         run: |
-          # Start virtual display
-          Xvfb :99 -screen 0 1920x1080x24 &
-          export DISPLAY=:99
-          
-          # Run tests
+          # StealthBot(headless=False) starts its own virtual display on Linux
           pytest tests/ -v
 ```
+
+Headless mode (`StealthBot(headless=True)`) needs no display at all, but some sites treat headless browsers differently, so headed mode inside Xvfb is the safer default for CI.
 
 ---
 
 ## Debugging Detection Issues
 
 ```python
-from stealthautomation import StealthBrowser, check_detection
+from sb_stealth_wrapper import StealthBot
 
-with StealthBrowser() as sb:
-    # Check what detection services might see
-    detection_report = check_detection(sb)
-    
-    print("=== Detection Report ===")
-    print(f"WebDriver flag visible: {detection_report['webdriver_visible']}")
-    print(f"Plugins detected: {detection_report['plugins_count']}")
-    print(f"WebGL available: {detection_report['webgl_available']}")
-    print(f"Canvas fingerprint: {detection_report['canvas_hash'][:20]}...")
-    
-    # Test against known detection sites
-    sb.open("https://bot.sannysoft.com")
-    sb.save_screenshot("bot_test.png")
-    
-    sb.open("https://browserleaks.com/javascript")
-    sb.save_screenshot("browserleaks_test.png")
+with StealthBot() as bot:
+    bot.safe_get("https://bot.sannysoft.com")
+
+    # Check what detection scripts can see
+    signals = {
+        "webdriver": bot.sb.execute_script("return navigator.webdriver"),
+        "plugins": bot.sb.execute_script("return navigator.plugins.length"),
+        "userAgent": bot.sb.execute_script("return navigator.userAgent"),
+    }
+    print("=== Detection Signals ===")
+    for name, value in signals.items():
+        print(f"{name}: {value}")
+
+    # Keep screenshots of known test pages
+    bot.save_screenshot("sannysoft")
+
+    bot.safe_get("https://browserleaks.com/javascript")
+    bot.save_screenshot("browserleaks")
 ```
 
 ---
@@ -2827,18 +2875,21 @@ with StealthBrowser() as sb:
 ## ⚠️ Ethical Considerations
 
 **Important:** Stealth automation should only be used for:
-- ✅ Testing your own applications
-- ✅ Testing applications where you have explicit permission
+
+- ✅ Testing your own applications 
+- ✅ Testing applications where you have explicit permission 
 - ✅ QA environments with security controls similar to production
 
 **Not for:**
-- ❌ Scraping data without permission
-- ❌ Bypassing rate limits on third-party services
+
+- ❌ Scraping data without permission 
+- ❌ Bypassing rate limits on third-party services 
 - ❌ Any malicious purposes
 
 ---
 
 # PART V: MODERN WEB ARCHITECTURES
+
 ## Conquering Shadow DOM and Web Components
 
 > *"The shadow boundary is a wall—but every wall has a door."*
@@ -2846,6 +2897,10 @@ with StealthBrowser() as sb:
 ---
 
 # Chapter 9: Understanding Shadow DOM
+
+**What you’ll learn** Recognize shadow boundaries and scope queries correctly.
+
+**Put it to work** Identify the host, root, and target in an open-root component before writing a locator.
 
 ## What Is Shadow DOM and Why Does It Exist?
 
@@ -2855,7 +2910,7 @@ Shadow DOM is a web standard that enables **encapsulation**. It creates a separa
 <!-- Main Page (Light DOM) -->
 <body>
     <h1>Welcome</h1>
-    
+
     <!-- This is a custom element -->
     <custom-button id="my-button">
         <!-- Shadow boundary starts here -->
@@ -2868,7 +2923,7 @@ Shadow DOM is a web standard that enables **encapsulation**. It creates a separa
                 <slot></slot>  <!-- Content projection -->
             </button>
         <!-- Shadow boundary ends here -->
-        
+
         Click Me  <!-- This text goes into the <slot> -->
     </custom-button>
 </body>
@@ -2901,6 +2956,8 @@ Shadow DOM is a web standard that enables **encapsulation**. It creates a separa
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+![Shadow DOM Structure](assets/images/shadow_dom.png)
+
 ---
 
 ## Why Frameworks Use Shadow DOM
@@ -2930,6 +2987,7 @@ document.querySelector('.inner-btn');  // Returns null!
 ### 3. Clean Component APIs
 
 The component's internal structure is an implementation detail. Users of the component only see:
+
 ```html
 <custom-button>Click Me</custom-button>
 ```
@@ -2941,7 +2999,7 @@ Not the internal `<button>`, `<style>`, or implementation details.
 ## Frameworks That Use Shadow DOM
 
 | Framework | Shadow DOM Usage | Difficulty for Testing |
-|-----------|------------------|----------------------|
+| --- | --- | --- |
 | **Salesforce Lightning (LWC)** | Extensive, deeply nested | Very High |
 | **Angular Material** | Optional per component | Medium |
 | **Ionic Framework** | All components | High |
@@ -2955,38 +3013,60 @@ Not the internal `<button>`, `<style>`, or implementation details.
 ## Why Standard Selenium Fails
 
 ```python
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+
+driver = webdriver.Chrome()
+driver.get("https://app.example.com/settings")
+
 # This element is inside a shadow root
-driver.find_element(By.CSS_SELECTOR, "button.inner-btn")
-# NoSuchElementException: Unable to locate element
+try:
+    driver.find_element(By.CSS_SELECTOR, "button#save")
+except NoSuchElementException:
+    print("CSS: Unable to locate element")
 
 # Even XPath fails
-driver.find_element(By.XPATH, "//button[@class='inner-btn']")
-# NoSuchElementException
+try:
+    driver.find_element(By.XPATH, "//button[@id='save']")
+except NoSuchElementException:
+    print("XPath: Unable to locate element")
 
-# The shadow boundary is a HARD WALL
-# querySelector() cannot cross it
+# Searches from the document stop at the shadow boundary.
+# Selenium 4 can open an open shadow root, one level at a time:
+app = driver.find_element(By.CSS_SELECTOR, "my-app")
+panel = app.shadow_root.find_element(By.CSS_SELECTOR, "settings-panel")
+save = panel.shadow_root.find_element(By.CSS_SELECTOR, "button#save")  # CSS only, no XPath
+save.click()
+driver.quit()
 ```
+
+The shadow boundary is not a hard wall: Selenium 4 has `element.shadow_root` for open shadow roots. But you must walk it one level at a time, only CSS selectors work inside a root, and closed roots are out of reach.
 
 ### 🔍 Deep Dive: Why Standard Queries Fail
 
 ```javascript
-// This is what Selenium executes internally:
-document.querySelector("button.inner-btn")  // Returns null
+// A search from the document does not enter shadow roots:
+document.querySelector("button#save")  // Returns null
 
 // The button exists, but it's in a separate DOM tree
-// You must access the shadow root first:
-const host = document.querySelector("custom-button");
-const shadow = host.shadowRoot;
-const button = shadow.querySelector("button.inner-btn");  // Found!
+// You must access each shadow root first:
+const app = document.querySelector("my-app");
+const panel = app.shadowRoot.querySelector("settings-panel");
+const button = panel.shadowRoot.querySelector("button#save");  // Found!
 ```
 
 ---
 
 # Chapter 10: Lumos ShadowDOM - Illuminating the Darkness
 
+**What you’ll learn** Evaluate traversal helpers against native shadow-root APIs.
+
+**Put it to work** Test nested components and an intentionally unavailable target with bounded failure.
+
 ## How Lumos Works
 
-**Lumos ShadowDOM** extends Selenium WebDriver with shadow-aware methods by injecting JavaScript that traverses shadow boundaries.
+**Lumos ShadowDOM** extends Selenium WebDriver with shadow-aware methods. Each call runs a small JavaScript function that walks the open shadow roots for you, and waits until the element appears.
 
 ### Installation
 
@@ -2994,65 +3074,94 @@ const button = shadow.querySelector("button.inner-btn");  // Found!
 pip install lumos-shadowdom
 ```
 
+The package installs as `lumos-shadowdom` and is imported as `lumos`.
+
 ### Basic Usage
 
 ```python
 from selenium import webdriver
-from lumos_shadowdom import patch_driver
+import lumos  # Adds find_shadow, find_all_shadow and find_shadow_text to WebDriver
 
-# Patch the driver with shadow DOM support
-driver = patch_driver(webdriver.Chrome())
+driver = webdriver.Chrome()
+driver.get("https://app.example.com/settings")
 
-driver.get("https://app-with-shadow-dom.com")
+# In a Lumos path, ">" means "go into the next shadow root"
+save_button = driver.find_shadow("my-app > settings-panel > button#save")
+save_button.click()
 
-# Find element inside shadow DOM
-shadow_button = driver.find_shadow("custom-button", "button.inner-btn")
-shadow_button.click()
-
-# Find with multiple shadow boundaries
-deep_element = driver.find_deep(
-    "outer-component",    # Host element 1
-    "inner-component",    # Host element 2 (inside first shadow)
-    "button.submit"       # Target element (inside second shadow)
-)
+# Every match for the last selector (an empty list if none appear in time)
+actions = driver.find_all_shadow("my-app > settings-panel > button.action")
+print(f"Found {len(actions)} action buttons")
+driver.quit()
 ```
+
+`find_shadow()` raises `lumos.ElementNotFoundError` after the timeout (10 seconds by default).
 
 ---
 
 ## 🔍 Deep Dive: How Shadow Traversal Works
 
 ```javascript
-// Lumos injects this JavaScript into the browser
-function findInShadow(hostSelector, targetSelector) {
-    // Step 1: Find the host element in light DOM
-    const host = document.querySelector(hostSelector);
-    if (!host) return null;
-    
-    // Step 2: Access its shadow root
-    const shadowRoot = host.shadowRoot;
-    if (!shadowRoot) {
-        // Might be a closed shadow root - more complex handling needed
-        return null;
-    }
-    
-    // Step 3: Query inside the shadow root
-    return shadowRoot.querySelector(targetSelector);
-}
+// Simplified version of the script Lumos runs for find_shadow()
+// selectors = ["my-app", "settings-panel", "button#save"]
+function findInShadow(selectors) {
+    let root = document;
+    let el = null;
 
-// For deeply nested shadows, recursive traversal:
-function findDeep(...selectors) {
-    let current = document;
-    
-    for (let i = 0; i < selectors.length - 1; i++) {
-        current = current.querySelector(selectors[i]);
-        if (!current) return null;
-        current = current.shadowRoot;
-        if (!current) return null;
+    for (let i = 0; i < selectors.length; i++) {
+        el = root.querySelector(selectors[i]);
+        if (!el) return null;
+
+        if (i < selectors.length - 1) {
+            // Open roots only: a closed root returns null here
+            if (!el.shadowRoot) return null;
+            root = el.shadowRoot;
+        }
     }
-    
-    // Last selector is the target element
-    return current.querySelector(selectors[selectors.length - 1]);
+    return el;
 }
+```
+
+---
+
+### 🔍 Deep Dive: The Closed Shadow Root Challenge
+
+For a "closed" shadow root, `element.shadowRoot` returns `null`, so neither Selenium nor Lumos can enter it:
+
+```python
+from selenium import webdriver
+import lumos
+from lumos import ElementNotFoundError
+
+driver = webdriver.Chrome()
+driver.get("https://app.example.com/settings")
+
+# <locked-box> uses attachShadow({mode: 'closed'})
+try:
+    driver.find_shadow("locked-box > button", timeout=2)
+except ElementNotFoundError as e:
+    print(e)  # Lumos could not find element at path: locked-box > button
+```
+
+If you own the application, the clean fix is to use open roots in test builds. Otherwise you can run a script before the page's own code that forces every new shadow root to be open. This is not part of Lumos; it uses the Chrome DevTools Protocol and only affects roots created after it is installed:
+
+```python
+from selenium import webdriver
+import lumos
+
+driver = webdriver.Chrome()
+
+# Test builds only: make every shadow root open before the page's own scripts run
+driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {"source": """
+    const original = Element.prototype.attachShadow;
+    Element.prototype.attachShadow = function (init) {
+        return original.call(this, { ...init, mode: 'open' });
+    };
+"""})
+
+driver.get("https://app.example.com/settings")
+print(driver.find_shadow("locked-box > button").text)  # Hidden
+driver.quit()
 ```
 
 ---
@@ -3062,18 +3171,23 @@ function findDeep(...selectors) {
 Real-world example with Salesforce Lightning:
 
 ```python
+from selenium import webdriver
+import lumos
+
+driver = webdriver.Chrome()
+driver.get("https://app.example.com/contact")
+
 # Lightning Web Components are deeply nested
 # Structure: page → record-form → input-field → input → actual <input>
-
-# Deep nesting: light DOM → shadow → shadow → shadow → target
-lightning_input = driver.find_deep(
-    "lightning-record-form",           # Level 1: The form component
-    "lightning-input-field",           # Level 2: Field wrapper
-    "lightning-input",                 # Level 3: Input component
-    "input[type='text']"               # Level 4: Actual input element
+lightning_input = driver.find_shadow(
+    "lightning-record-form"            # Level 1: The form component
+    " > lightning-input-field"         # Level 2: Field wrapper
+    " > lightning-input"               # Level 3: Input component
+    " > input[type='text']"            # Level 4: Actual input element
 )
 
 lightning_input.send_keys("Hello World")
+driver.quit()
 ```
 
 ### Visualizing the Traversal
@@ -3093,43 +3207,34 @@ DOCUMENT
 
 ## Smart Text Search
 
-When you don't know the structure, search by visible text:
+When you don't know the structure, search by visible text. `find_shadow_text()` returns the first element with no child elements whose text contains yours:
 
 ```python
-# Find element by visible text, even inside shadows
-submit_button = driver.find_shadow_text("Submit Order")
+from selenium import webdriver
+import lumos
+from lumos import Lumos
 
-# Find with partial match
-cancel_link = driver.find_shadow_text("Cancel", partial=True)
+driver = webdriver.Chrome()
+driver.get("https://app.example.com/settings")
 
-# Find input by its label (accessibility pattern)
-email_input = driver.find_shadow_by_label("Email Address")
+# Find element by visible text, even inside shadows (case sensitive)
+save_button = driver.find_shadow_text("Save settings")
+
+# Text inside the element is matched, so a shorter text also works
+same_button = driver.find_shadow_text("Save")
+
+# A list path lets each step be any CSS selector, including ">" inside one root
+lum = Lumos(driver)
+email_input = lum.find_element(["my-app", "div.panel > settings-panel", "input[name='email']"])
+email_input.send_keys("user@example.com")
+driver.quit()
 ```
 
 ---
 
 ## Selector Discovery Tool
 
-When you're exploring an unfamiliar app:
-
-```python
-from lumos_shadowdom import discover_selectors
-
-# Analyze page and generate selectors for interactive elements
-selectors = discover_selectors(
-    driver,
-    visual_label="Email Address",  # What the user sees
-    element_type="input"           # What type of element
-)
-
-print(selectors)
-# {
-#     'selector': 'ui-input-field::shadow input[name="email"]',
-#     'shadow_path': ['ui-form', 'ui-input-field'],
-#     'confidence': 0.95,
-#     'code': 'driver.find_deep("ui-form", "ui-input-field", "input[name=\\'email\\']")'
-# }
-```
+When you're exploring an unfamiliar app, Lumos offers a small Discovery Tool script (in the [project README](https://github.com/godhiraj-code/lumos-shadowdom)). Paste it into the Chrome DevTools console, then hold Alt and click any element. The console prints a short path and a long path that you can pass straight to `driver.find_shadow()`.
 
 ---
 
@@ -3138,6 +3243,13 @@ print(selectors)
 Most real apps have both:
 
 ```python
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import lumos
+
+driver = webdriver.Chrome()
+driver.get("https://app.example.com/contact")
+
 # Regular elements in light DOM
 page_title = driver.find_element(By.TAG_NAME, "h1")  # Standard Selenium
 
@@ -3145,36 +3257,46 @@ page_title = driver.find_element(By.TAG_NAME, "h1")  # Standard Selenium
 form = driver.find_element(By.ID, "contact-form")
 
 # Fields inside shadow components
-email_field = driver.find_shadow("custom-input[name='email']", "input")
-phone_field = driver.find_shadow("custom-input[name='phone']", "input")
+email_field = driver.find_shadow("custom-input[name='email'] > input")
+phone_field = driver.find_shadow("custom-input[name='phone'] > input")
+email_field.send_keys("user@example.com")
+phone_field.send_keys("555 0100")
 
-# Submit button might be in light DOM
+# Submit button in light DOM
 submit = form.find_element(By.CSS_SELECTOR, "button[type='submit']")
-
-# Or in shadow DOM
-submit = driver.find_shadow("custom-button[type='submit']", "button")
+# (If it lived in a component, use driver.find_shadow("custom-button > button"))
+submit.click()
+driver.quit()
 ```
 
 ---
 
 # PART VI: AI & INTELLIGENT AUTOMATION
+
 ## Leveraging AI for Smarter Testing
 
 ---
 
 # Chapter 11: Selector Scout - AI-Generated Resilient Locators
 
+**What you’ll learn** Review generated locators as maintainable test contracts.
+
+**Put it to work** Reject ambiguous matches and document the business identity of the intended element.
+
+**Status:** Selector Scout is not yet published on PyPI or GitHub. The code in this chapter is a design sketch of the planned API and will not run today. The locator principles apply to any tool.
+
 ## The Selector Maintenance Problem
 
 Selectors break constantly:
-- Developers change IDs during refactoring
-- Class names are generated by CSS-in-JS libraries
-- DOM structure changes without notice
+
+- Developers change IDs during refactoring 
+- Class names are generated by CSS-in-JS libraries 
+- DOM structure changes without notice 
 - Dynamic IDs change on every page load
 
-**Studies show: 30% of automation engineer time goes to selector maintenance.**
+Selector maintenance can consume substantial engineering time. Track locator-related failures in your own suite before choosing a replacement strategy.
 
-### The Brittle Selector Spectrum
+### 🔍 Deep Dive: The Brittle Selector Spectrum
 
 ```python
 # ❌ MOST BRITTLE: Auto-generated IDs
@@ -3197,9 +3319,10 @@ driver.find_element(By.XPATH, "//form[@aria-label='Login']//input[@type='email']
 
 ## Selector Scout's AI Approach
 
-Selector Scout uses AI (Google Gemini) to analyze HTML and generate resilient selectors:
+Selector Scout is designed to use AI (Google Gemini) to analyze HTML and generate resilient selectors:
 
 ```python
+# Design sketch: selector_scout is not published yet
 from selector_scout import SelectorScout
 
 scout = SelectorScout(api_key="your-gemini-api-key")
@@ -3209,9 +3332,9 @@ selectors = scout.analyze("""
 <div class="form_7x92ka login-module">
     <div class="field_container_abc123">
         <label for="email-1234">Email Address</label>
-        <input 
-            id="email-1234" 
-            type="email" 
+        <input
+            id="email-1234"
+            type="email"
             data-testid="login-email"
             class="input_xyz789 form-control"
             placeholder="Enter your email"
@@ -3229,7 +3352,7 @@ print(selectors)
 #         "#email-1234"
 #     ],
 #     "xpath": "//label[contains(text(),'Email')]/following-sibling::input",
-#     "strategy_notes": "Primary uses data-testid (stable). Fallback 1 uses 
+#     "strategy_notes": "Primary uses data-testid (stable). Fallback 1 uses
 #                        semantic attributes. Avoid ID as it appears auto-generated."
 # }
 ```
@@ -3239,6 +3362,7 @@ print(selectors)
 ## Batch Analysis and Page Object Generation
 
 ```python
+# Design sketch: selector_scout is not published yet
 from selector_scout import SelectorScout
 
 scout = SelectorScout(api_key="your-api-key")
@@ -3258,10 +3382,10 @@ scout.export_page_object(
 )
 ```
 
-**Generated output:**
+**Planned output:**
 
 ```python
-# login_page.py (auto-generated by Selector Scout)
+# login_page.py (example of the planned Selector Scout output)
 from selenium.webdriver.common.by import By
 
 class LoginPage:
@@ -3270,19 +3394,19 @@ class LoginPage:
     PASSWORD_INPUT = (By.CSS_SELECTOR, "[data-testid='login-password']")
     SUBMIT_BUTTON = (By.CSS_SELECTOR, "button[type='submit']")
     FORGOT_PASSWORD_LINK = (By.XPATH, "//a[contains(text(),'Forgot')]")
-    
+
     def __init__(self, driver):
         self.driver = driver
-    
+
     def enter_email(self, email: str):
         self.driver.find_element(*self.EMAIL_INPUT).send_keys(email)
-    
+
     def enter_password(self, password: str):
         self.driver.find_element(*self.PASSWORD_INPUT).send_keys(password)
-    
+
     def click_submit(self):
         self.driver.find_element(*self.SUBMIT_BUTTON).click()
-    
+
     def click_forgot_password(self):
         self.driver.find_element(*self.FORGOT_PASSWORD_LINK).click()
 ```
@@ -3290,6 +3414,10 @@ class LoginPage:
 ---
 
 # Chapter 12: Testing GenAI Chatbots with Selenium
+
+**What you’ll learn** Separate streaming behavior from answer quality.
+
+**Put it to work** Test cancellation, partial output, completion, and a failed stream independently.
 
 ## The Unique Challenges of AI Interfaces
 
@@ -3331,8 +3459,8 @@ Traditional assertEquals fails even though all are correct!
 
 ### Challenge 3: Variable Latency
 
-- First token might take 500ms or 5000ms
-- Total response time varies by length
+- First token might take 500ms or 5000ms 
+- Total response time varies by length 
 - Server load affects response speed
 
 ---
@@ -3345,48 +3473,57 @@ pip install selenium-chatbot-test
 
 ### Core Component 1: StreamWaiter
 
-Detects when streaming has truly completed:
+Detects when streaming has truly completed. It watches the response element with a `MutationObserver` inside the browser and returns once the text has been quiet for a while:
 
 ```python
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium_chatbot_test import StreamWaiter
 
-waiter = StreamWaiter(
-    driver,
-    response_selector="#chat-response",
-    stability_threshold=500,  # ms of no changes = complete
-    timeout=30000             # max wait time
-)
+driver = webdriver.Chrome()
+driver.get("https://app.example.com/chat")
 
 # Send message
-driver.find_element(By.ID, "chat-input").send_keys("What is Python?")
-driver.find_element(By.ID, "send-button").click()
+driver.find_element(By.ID, "chat-input").send_keys("What is the capital of France?")
+driver.find_element(By.ID, "send-btn").click()
 
-# Wait for streaming to complete
-response_text = waiter.wait_for_completion()
-print(f"Bot responded: {response_text}")
+# Wait until the text has stopped changing for 0.5 s (30 s at most)
+waiter = StreamWaiter()
+response = waiter.wait_for_stream_end(
+    driver,
+    (By.ID, "response-box"),
+    silence_timeout=0.5,  # seconds of no changes = complete
+    timeout=30.0          # max wait time in seconds
+)
+print(f"Bot responded: {response.text}")
+driver.quit()
 ```
 
 ### Core Component 2: SemanticAssert
 
-Assert meaning, not exact text:
+Assert meaning, not exact text. It compares sentence embeddings with cosine similarity:
 
 ```python
 from selenium_chatbot_test import SemanticAssert
 
-asserter = SemanticAssert(model="all-MiniLM-L6-v2")
+asserter = SemanticAssert()  # Loads all-MiniLM-L6-v2 the first time it is needed
 
 # These all mean the same thing
 response = "The capital city of France is Paris."
 
-assert asserter.similar(
-    response, 
+# Raises AssertionError if the similarity is below min_score
+asserter.assert_similarity(
+    response,
     "Paris is France's capital",
-    threshold=0.75  # 75% semantic similarity required
+    min_score=0.75  # cosine similarity between 0 and 1
 )
 
-# Check for concept presence
-assert asserter.contains_concept(response, "Paris")
-assert asserter.contains_concept(response, "capital")
+# Get the raw score when you want to log it or set your own rule
+score = asserter.get_similarity_score(response, "Berlin is in Germany")
+print(f"Unrelated answer scores {score:.2f}")
+
+# Check for key facts with plain Python
+assert "Paris" in response
 ```
 
 ### Core Component 3: LatencyMonitor
@@ -3394,163 +3531,202 @@ assert asserter.contains_concept(response, "capital")
 Track performance metrics:
 
 ```python
-from selenium_chatbot_test import LatencyMonitor
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium_chatbot_test import LatencyMonitor, StreamWaiter
 
-monitor = LatencyMonitor(driver, response_selector="#chat-response")
+driver = webdriver.Chrome()
+driver.get("https://app.example.com/chat")
+response_box = (By.ID, "response-box")
 
 driver.find_element(By.ID, "chat-input").send_keys("Hello!")
-driver.find_element(By.ID, "send-button").click()
 
-metrics = monitor.measure()
+with LatencyMonitor(driver, response_box) as monitor:
+    driver.find_element(By.ID, "send-btn").click()
+    StreamWaiter().wait_for_stream_end(driver, response_box)
 
-print(f"Time to First Token (TTFT): {metrics.ttft_ms}ms")
-print(f"Tokens per second: {metrics.tokens_per_second}")
-print(f"Total response time: {metrics.total_time_ms}ms")
+metrics = monitor.metrics
+print(f"Time to First Token (TTFT): {metrics.ttft_ms:.0f}ms")
+print(f"Total response time: {metrics.total_ms:.0f}ms")
+print(f"Text updates seen: {metrics.token_count}")  # rough proxy for tokens
 
 # Performance assertions
 assert metrics.ttft_ms < 2000, "First token too slow"
-assert metrics.tokens_per_second > 20, "Streaming too slow"
+assert metrics.total_ms < 10000, "Streaming too slow"
+driver.quit()
 ```
 
 ---
 
 # Chapter 13: Pytest-MockLLM - Testing AI Features Without API Costs
 
+**What you’ll learn** Use deterministic LLM fixtures to test integration behavior.
+
+**Put it to work** Include a malformed response and a timeout, then keep a separate live-model evaluation.
+
 ## The Problem with Testing LLM-Powered Features
 
 Every call to OpenAI/Claude/Gemini costs money and time:
-- API calls: $0.01-$0.10 per request
-- Latency: 500ms-5000ms per call
-- Rate limits: 60-1000 requests/minute
+
+- API calls: $0.01-$0.10 per request 
+- Latency: 500ms-5000ms per call 
+- Rate limits: 60-1000 requests/minute 
 - Non-determinism: Same prompt, different results
 
 For a CI pipeline running 50+ tests 10 times daily:
-- **500+ API calls/day**
-- **$50-500/month just for testing**
+
+- **500+ API calls/day** 
+- **$50-500/month just for testing** 
 - **Flaky tests from non-determinism**
 
 ## Pytest-MockLLM Solution
 
 ```bash
-pip install pytest-mockllm
+pip install "pytest-mockllm[openai]"
 ```
+
+Use the extra for your provider (`openai`, `anthropic`, `google`, `langchain` or `all`). The plugin registers its fixtures automatically: `mock_openai`, `mock_anthropic`, `mock_gemini`, `mock_langchain`, `mock_llm` and `llm_recorder`.
 
 ### Basic Usage
 
 ```python
-import pytest
-from pytest_mockllm import mock_openai
+from openai import OpenAI
 
-@pytest.fixture
-def mock_llm():
-    with mock_openai() as mock:
-        # Configure response
-        mock.set_response("Hello! How can I help you today?")
-        yield mock
+def ask_bot(message: str) -> str:
+    """App code under test (normally imported from your project)."""
+    client = OpenAI(api_key="test-key")
+    reply = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": message}],
+    )
+    return reply.choices[0].message.content
 
-def test_chatbot_greeting(mock_llm, chatbot):
-    response = chatbot.send_message("Hi!")
-    
+# mock_openai is a fixture provided by the plugin: no import needed
+def test_chatbot_greeting(mock_openai):
+    mock_openai.add_response("Hello! How can I help you today?")
+
+    response = ask_bot("Hi!")
+
     # Response is deterministic and instant
     assert "help you" in response.lower()
-    
+
     # Verify the mock was called
-    assert mock_llm.call_count == 1
-    assert "Hi!" in mock_llm.last_prompt
+    assert mock_openai.call_count == 1
+    assert mock_openai.last_call["messages"][-1]["content"] == "Hi!"
 ```
+
+Queue several answers with `add_responses("first", "second")`. Run with `pytest --llm-strict` (or call `mock_openai.set_strict_mode()`) to fail any call that has no configured response.
+
+### 🔍 Deep Dive: How Recorded Requests Are Matched
+
+When replaying a recording, Pytest-MockLLM must decide which saved response belongs to a request. It matches on the provider, HTTP method, URL and the full JSON request body (model, messages, tools, sampling parameters and the stream flag). Credential headers do not affect matching. There is no fuzzy matching: if you change a prompt, even cosmetically, the request no longer matches and you record that interaction again. This keeps replays honest, because a test can never pass on an answer recorded for a different prompt.
+
+---
 
 ### Recording and Playback
 
 ```python
-from pytest_mockllm import record_responses, playback_responses
+import os
+from openai import OpenAI
 
-# Step 1: Record real responses (run once)
-@record_responses("./cassettes/chat_flow.json")
-def test_chat_flow_record():
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": "Hello"}]
-    )
-    assert response is not None
-
-# Step 2: Playback in CI (no API calls)
-@playback_responses("./cassettes/chat_flow.json")
-def test_chat_flow():
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": "Hello"}]
-    )
-    # Uses recorded response, instant, free
-    assert "Hello" in response.choices[0].message.content
+# llm_recorder records real HTTP responses once, then replays them offline
+def test_chat_flow(llm_recorder):
+    with OpenAI(api_key=os.getenv("OPENAI_API_KEY", "replay-only")) as client:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+    # In replay: recorded response, instant, free
+    assert response.choices[0].message.content
 ```
+
+```bash
+# First run: real API calls, saved under tests/llm_cassettes/
+OPENAI_API_KEY=sk-... pytest test_recorded.py --llm-record=once
+
+# Every run after that (and in CI): offline replay, no key needed
+pytest test_recorded.py
+```
+
+The default mode is `none`: a missing recording fails the test without sending any HTTP request. Other modes are `new_episodes` (record only what is missing) and `all` (record everything again).
 
 ### Chaos Engineering for Edge Cases
 
 ```python
-from pytest_mockllm import mock_openai, Chaos
+import openai
+import pytest
+from openai import OpenAI
 
-def test_handles_timeout():
-    with mock_openai() as mock:
-        mock.set_chaos(Chaos.TIMEOUT, probability=1.0)
-        
-        with pytest.raises(TimeoutError):
-            openai.ChatCompletion.create(...)
+def ask_with_retry(client, prompt, attempts=3):
+    """App code under test: retry when the provider rate limits us."""
+    for attempt in range(attempts):
+        try:
+            reply = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return reply.choices[0].message.content
+        except openai.RateLimitError:
+            if attempt == attempts - 1:
+                raise
 
-def test_handles_rate_limit():
-    with mock_openai() as mock:
-        mock.set_chaos(Chaos.RATE_LIMIT, probability=1.0)
-        
-        # Should trigger retry logic
-        response = my_app.call_with_retry(...)
-        assert response is not None
+def test_handles_timeout(mock_openai):
+    mock_openai.simulate_error("timeout")
+
+    with pytest.raises(openai.APITimeoutError):
+        ask_with_retry(OpenAI(api_key="test-key"), "Hi")
+
+def test_handles_rate_limit(mock_openai):
+    mock_openai.simulate_error("rate_limit", times=1)  # fail once, then succeed
+    mock_openai.add_response("Recovered")
+
+    # Should trigger retry logic
+    response = ask_with_retry(OpenAI(api_key="test-key"), "Hi")
+    assert response == "Recovered"
 ```
 
-### PII Redaction
+Supported errors include `rate_limit`, `auth`, `timeout`, `server` and `invalid_request`. Use `after_calls=N` to let N calls succeed first.
 
-```python
-from pytest_mockllm import PIIRedactor
+### Secrets in Recordings
 
-# Automatically redact sensitive data from recorded cassettes
-redactor = PIIRedactor()
-redactor.add_pattern(r"API_KEY_\w+", "[REDACTED_API_KEY]")
-redactor.add_pattern(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "[EMAIL]")
-
-@record_responses("./cassettes/test.json", redactor=redactor)
-def test_with_pii():
-    # Personal data automatically scrubbed from recordings
-    pass
-```
+Recorded cassettes automatically redact API keys, tokens and other credentials, including echoes inside the response body. This is not general PII removal: prompts and model output stay readable. Use test data without real personal details, and review cassettes before you commit them.
 
 ---
 
 ## 📋 Parts IV-VI Summary
 
 | Topic | Key Tool | Problem Solved |
-|-------|----------|----------------|
-| Bot Detection | StealthAutomation | Tests blocked by Cloudflare, etc. |
+| --- | --- | --- |
+| Bot Detection | SB Stealth Wrapper | Tests blocked by Cloudflare, etc. |
 | Shadow DOM | Lumos | Elements hidden in shadow roots |
-| AI Selectors | Selector Scout | Brittle, breaking selectors |
+| AI Selectors | Selector Scout (not yet published) | Brittle, breaking selectors |
 | Chatbot Testing | selenium-chatbot-test | Streaming, non-deterministic AI |
 | LLM Testing | pytest-mockllm | API costs, flaky AI tests |
 
 ---
 
-
 # PART VII: VISUAL AUTOMATION
+
 ## When There's No DOM At All
 
 > *"In a remote desktop, all you have are pixels—and your wits."*
 
 ---
 
+![Visual Testing Workflow](assets/images/visual.png)
+
 # Chapter 14: Visual Sonar - Automating Remote Desktops
+
+**What you’ll learn** Recognize when pixel automation is necessary and fragile.
+
+**Put it to work** Repeat one flow at different supported resolutions and capture failure evidence.
 
 ## The Pixelated Frontier
 
 Remote desktop environments present automation's hardest challenge:
 
 | Environment | DOM Access | Accessibility API | What You Get |
-|-------------|------------|-------------------|--------------|
+| --- | --- | --- | --- |
 | Web Browser | ✅ Full | ✅ Full | Elements, attributes, structure |
 | Native Desktop | ❌ None | ✅ Partial | Some UI elements via UI Automation |
 | Remote Desktop (Citrix/VDI) | ❌ None | ❌ None | **Only pixels** |
@@ -3560,6 +3736,7 @@ When you connect to a Citrix session, all you receive is a video stream. There's
 ### Traditional Approaches and Their Problems
 
 **Approach 1: Coordinate-Based Clicking**
+
 ```python
 # Fragile: Breaks if resolution or window position changes
 import pyautogui
@@ -3569,6 +3746,7 @@ pyautogui.click(x=500, y=300)
 ```
 
 **Approach 2: Image Template Matching**
+
 ```python
 # Better but slow and resolution-dependent
 button_location = pyautogui.locateOnScreen('login_button.png')
@@ -3584,33 +3762,28 @@ pyautogui.click(button_location)
 
 ## Visual Sonar's Innovative Approach
 
-Visual Sonar uses **focus ring detection**: tracking how the visual focus indicator moves through the interface using keyboard navigation.
+Visual Sonar uses **focus change detection**: it presses TAB and compares screenshots to see where the visual focus indicator moved. It works in two phases: you map a form once, then replay it with your data.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                   VISUAL SONAR WORKFLOW                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  1. SCREEN CAPTURE                                              │
-│     Take screenshot of current state                            │
+│  MAP (once, with a person naming fields)                         │
+│  1. Wait until the screen is stable                              │
+│  2. Press TAB: focus moves to the next field                     │
+│  3. Wait until the screen is stable again                        │
+│  4. Diff the two screenshots; the largest changed                │
+│     region is the newly focused field                            │
+│  5. You name it (username:text, signin:click, ...)               │
+│  6. Save every field's box to wvd_map.json                       │
 │                                                                  │
-│  2. PRESS TAB KEY                                               │
-│     Focus moves to next interactive element                     │
-│                                                                  │
-│  3. SCREEN CAPTURE                                              │
-│     Take screenshot of new state                                │
-│                                                                  │
-│  4. COMPUTE DIFFERENCE                                          │
-│     Find pixels that changed between screenshots                │
-│                                                                  │
-│  5. DETECT FOCUS RING                                           │
-│     Changed region = newly focused element                       │
-│                                                                  │
-│  6. OCR EXTRACTION                                              │
-│     Read label text near the focus ring                        │
-│                                                                  │
-│  7. INTERACTION                                                 │
-│     If label matches target, type or click                     │
+│  RUN (every time, unattended)                                    │
+│  1. Click the center of each mapped field                        │
+│     (scaled if the DPI changed)                                  │
+│  2. Paste text, press Space or pick a dropdown value             │
+│  3. Optional screenshot after each step                          │
+│  4. Optional OCR check of a screen region                        │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -3620,82 +3793,117 @@ Visual Sonar uses **focus ring detection**: tracking how the visual focus indica
 ## Installation
 
 ```bash
-pip install visual-sonar pytesseract
+pip install visual-sonar
 
-# Also install Tesseract OCR binary:
+# Optional, for OCR checks: pytesseract (or easyocr)
+pip install pytesseract
+
+# Also install the Tesseract OCR binary:
 # Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
 # Mac: brew install tesseract
 # Linux: sudo apt-get install tesseract-ocr
 ```
 
+Visual Sonar runs on Windows, the machine that shows the remote desktop window. It drives the mouse and keyboard with PyAutoGUI. Move the mouse to the top left corner of the screen to stop a run at any time.
+
 ## Basic Usage
 
+```bash
+# 1. Map the form once: Visual Sonar presses TAB and you name each detected field
+visual-sonar map
+#    Names use name:type, e.g. username:text, password:text, signin:click
+
+# 2. Put your values in input.json (keep it out of Git)
+#    {"username": "admin@company.com", "password": "...", "signin": true}
+
+# 3. Run the automation
+visual-sonar run
+
+# Data-driven runs and OCR checks
+visual-sonar batch test_cases/users.csv
+visual-sonar extract verify 100 200 300 50 "Welcome"
+```
+
+The map is plain JSON, so you can review it in a pull request:
+
+```json
+{
+    "meta": {
+        "resolution": [1920, 1080],
+        "dpi_scale": 1.0,
+        "version": "1.0.0"
+    },
+    "fields": [
+        {"name": "username", "type": "text", "coords": [812, 402, 296, 36]},
+        {"name": "password", "type": "text", "coords": [812, 462, 296, 36]},
+        {"name": "signin", "type": "click", "coords": [860, 530, 200, 44]}
+    ]
+}
+```
+
+You can also drive it from Python, for example inside a pytest test:
+
 ```python
+import os
 from visual_sonar import VisualSonar
 
-sonar = VisualSonar()
+# Uses the map you recorded with "visual-sonar map"
+sonar = VisualSonar(output_file="wvd_map.json")
 
-# Navigate to a field by tabbing until we find it
-sonar.tab_to_field("Username")
+sonar.run_automation(
+    {
+        "username": "admin@company.com",
+        "password": os.environ["WVD_PASSWORD"],
+        "signin": True,
+    },
+    dry_run=False,    # True prints the planned clicks without acting
+    screencap=True,   # Screenshot after every step
+)
 
-# Type in the focused field
-sonar.type_text("admin@company.com")
-
-# Tab to next field
-sonar.tab_to_field("Password")
-sonar.type_text("secretpassword")
-
-# Find and click a button by visible text
-sonar.click_text("Sign In")
-
-# Or by template image
-sonar.click_image("templates/login_button.png")
+# Assert with OCR on a screen region (x, y, width, height)
+assert sonar.verify_text_contains((100, 200, 300, 50), "Welcome")
 ```
 
 ---
 
-## Focus Ring Detection Deep Dive
+## 🔍 Deep Dive: How Focus Change Detection Works
 
 ```python
-from visual_sonar import VisualSonar, FocusDetector
+# Simplified version of Visual Sonar's detection step
+import cv2
+import numpy as np
 
-detector = FocusDetector(
-    focus_ring_colors=["#0078d4", "#005a9e"],  # Common blue focus colors
-    min_focus_area=100,                         # Minimum pixel area for focus ring
-    max_focus_area=50000,                       # Maximum pixel area
-    difference_threshold=30,                    # Pixel intensity difference threshold
-)
+def get_focus_region(img_before, img_after):
+    a = cv2.GaussianBlur(cv2.cvtColor(np.array(img_before), cv2.COLOR_RGB2GRAY), (5, 5), 0)
+    b = cv2.GaussianBlur(cv2.cvtColor(np.array(img_after), cv2.COLOR_RGB2GRAY), (5, 5), 0)
+    diff = cv2.absdiff(a, b)
 
-sonar = VisualSonar(focus_detector=detector)
+    # Dynamic threshold: median + 15 hides video compression noise
+    _, mask = cv2.threshold(diff, int(np.median(diff) + 15), 255, cv2.THRESH_BINARY)
+    mask = cv2.dilate(mask, np.ones((5, 5), np.uint8), iterations=2)
 
-# The algorithm:
-# 1. Capture baseline screenshot
-# 2. Press TAB key
-# 3. Capture new screenshot
-# 4. Compute absolute difference between images
-# 5. Find contiguous region of changed pixels
-# 6. Verify size matches expected focus ring
-# 7. Calculate centroid = element center
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
+    largest = max(contours, key=cv2.contourArea)
+    if cv2.contourArea(largest) < 100:   # too small to be a field
+        return None
+    return cv2.boundingRect(largest)    # (x, y, w, h) of the focused field
 ```
+
+Before each screenshot, Visual Sonar waits until several frames in a row are nearly identical, so a laggy session or a blinking cursor does not count as a focus change.
 
 ### Per-Monitor DPI Handling
 
-```python
-from visual_sonar import VisualSonar, DPIConfig
-
-# Handle mixed DPI scenarios (common in remote desktop)
-dpi_config = DPIConfig(
-    auto_detect=True,           # Auto-detect per-monitor DPI
-    reference_dpi=96,           # Base DPI for template images
-    scaling_interpolation="LANCZOS"  # High-quality scaling
-)
-
-sonar = VisualSonar(dpi_config=dpi_config)
-```
+When you map a form, Visual Sonar saves the screen resolution and the DPI scale of the Remote Desktop window in `wvd_map.json`. On each run it reads the current scale and multiplies the saved coordinates by the ratio. If the resolution differs by more than 5 percent, it warns you and asks before continuing; remapping is the safe fix.
 
 ---
 
 # Chapter 15: Project Vandal - UI Mutation Testing
+
+**What you’ll learn** Check that an assertion detects the defect it claims to cover.
+
+**Put it to work** Mutate a relevant UI behavior and verify that the intended assertion fails.
 
 ## What Is Mutation Testing?
 
@@ -3738,104 +3946,167 @@ Project Vandal helps identify these weak tests.
 ## Installation
 
 ```bash
-pip install vandal-testing
+pip install project-vandal
+playwright install chromium
 ```
+
+Vandal works with Playwright for Python and its async API. It does not support Selenium or Playwright's sync API today.
 
 ## Basic Usage
 
 ```python
-from vandal import Vandal, MutationType
+import asyncio
+from playwright.async_api import async_playwright
+from vandal import Vandal
 
-vandal = Vandal(driver)
+async def login_test(page):
+    await page.fill("#email", "user@example.com")
+    await page.click("#login-btn")
+    assert await page.inner_text("#msg") == "Success"
 
-# Apply mutation: disable the submit button
-with vandal.mutate(
-    selector="#submit-button",
-    mutation=MutationType.STEALTH_DISABLE
-):
-    # Run your test in this context
-    # If test still passes, it's weak!
-    run_submit_test()
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page()
+        page.set_default_timeout(3000)  # fail fast when a click is blocked
+        await page.goto("https://app.example.com/login")
 
-# Mutation automatically reverted after context exits
+        vandal = Vandal(page)
+        try:
+            async with vandal:
+                # Apply mutation: make the login button unclickable
+                await vandal.apply_mutation("stealth_disable", "#login-btn")
+
+                # Run your test in this context
+                # If it still passes, the mutant survived: the test is weak!
+                await login_test(page)
+        except Exception:
+            pass  # The test failed, so the mutant was killed
+
+        vandal.report()        # Prints KILLED or SURVIVED
+        vandal.save_report()   # vandal_report.json and vandal_report.html
+        await browser.close()
+
+asyncio.run(main())
 ```
+
+A killed mutant means your test failed, and Vandal lets that exception propagate. Catch it around the `async with` block, as above, when you want the run to continue.
 
 ---
 
-## Mutation Strategies
+## 🔍 Deep Dive: Mutation Strategies
+
+Pass the strategy name to `apply_mutation(strategy, selector)`. Mutations also reach elements inside open shadow roots.
 
 ### 1. Stealth Disable
 
 Makes element non-functional but visually identical:
 
-```python
-MutationType.STEALTH_DISABLE
-# JavaScript: element.disabled = true; (for buttons)
-# Or: element.style.pointerEvents = 'none';
+```javascript
+// "stealth_disable"
+element.style.pointerEvents = 'none';
 ```
 
 ### 2. Ghost Element
 
-Hides element from interaction but keeps it in DOM:
+Makes the element invisible and unclickable, but keeps it in the DOM:
 
-```python
-MutationType.GHOST_ELEMENT
-# JavaScript: element.style.visibility = 'hidden';
-# element.style.height = '0'; element.style.overflow = 'hidden';
+```javascript
+// "ghost_element"
+element.style.opacity = '0';
+element.style.pointerEvents = 'none';
 ```
 
 ### 3. Data Sabotage
 
 Changes text content to verify tests actually read values:
 
-```python
-MutationType.DATA_SABOTAGE
-# JavaScript: element.textContent = 'VANDALIZED';
-# element.value = 'WRONG_VALUE';
+```javascript
+// "data_sabotage"
+input.value = 'VANDALIZED_DATA';        // inputs and text areas
+element.innerText = 'VANDALIZED_TEXT';  // everything else
 ```
 
 ### 4. Logic Sabotage
 
-Breaks JavaScript event handlers:
+Breaks click handling while the element still looks and accepts clicks normally:
 
-```python
-MutationType.LOGIC_SABOTAGE  
-# JavaScript: Removes all event listeners from element
+```javascript
+// "logic_sabotage": a capture phase listener runs before the app's handlers
+element.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+}, true);
 ```
+
+Two more strategies exist: `ui_shift` moves the element 100px right and down, and `slow_load` hides it for 5 seconds. Mutations are persistent by default: they are also registered as a Playwright init script, so they apply again after navigation. Use a fresh page for each mutant.
 
 ---
 
 ## Mutation Score
 
+Vandal records one result per `async with` block. To score a test, run it once per mutation on a fresh page and count the killed mutants yourself:
+
 ```python
-from vandal import VandalRunner
+import asyncio
+from playwright.async_api import async_playwright
+from vandal import Vandal
 
-runner = VandalRunner(driver)
+MUTATIONS = ["stealth_disable", "ghost_element", "logic_sabotage"]
 
-# Run mutation testing across your test suite
-report = runner.run_mutations(
-    test_function=run_checkout_tests,
-    selectors=["#add-to-cart", "#checkout", "#pay-now"],
-    mutations=[MutationType.STEALTH_DISABLE, MutationType.GHOST_ELEMENT]
-)
+async def zombie_login_test(page):
+    await page.fill("#email", "user@example.com")
+    await page.click("#login-btn", force=True)  # force skips the actionability checks
+    # No assertion! Test passes even if the login is broken
 
-print(f"Mutation Score: {report.score}%")
+async def run_mutations(test_function, selector):
+    results = []
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        for mutation in MUTATIONS:
+            page = await browser.new_page()  # fresh page: persistent mutations can't be removed
+            page.set_default_timeout(3000)
+            await page.goto("https://app.example.com/login")
+
+            vandal = Vandal(page)
+            try:
+                async with vandal:
+                    await vandal.apply_mutation(mutation, selector)
+                    await test_function(page)
+            except Exception:
+                pass  # killed
+            results.extend(vandal.mutants)
+            await page.close()
+        await browser.close()
+    return results
+
+results = asyncio.run(run_mutations(zombie_login_test, "#login-btn"))
+
+killed = sum(1 for m in results if m.killed)
+print(f"Mutation Score: {100 * killed / len(results):.0f}%")
 # 100% = all mutations detected (tests failed as expected)
 # <100% = some mutations not detected (zombie tests exist)
 
-for result in report.results:
-    if result.mutation_survived:
-        print(f"⚠️ ZOMBIE: {result.test_name} didn't detect {result.mutation}")
+for m in results:
+    if not m.killed:
+        print(f"⚠️ ZOMBIE: test didn't detect {m.type} on {m.selector}")
 ```
+
+Running the same loop with `login_test` from the basic example (which asserts on the outcome) scores 100%.
 
 ---
 
 # PART VIII: REPORTING & OBSERVABILITY
+
 ## Making Quality Visible
 
 ---
 
 # Chapter 16: pytest-glow-report - Enterprise-Grade Reporting
+
+**What you’ll learn** Turn test results into actionable evidence.
+
+**Put it to work** Ensure a report links failures to artifacts, versions, and the first attempt.
 
 ## Beyond Developer Output
 
@@ -3848,9 +4119,10 @@ test_checkout.py::test_add_to_cart PASSED
 ```
 
 But stakeholders need:
-- **Executive Summary**: Can we release?
-- **Quality Metrics**: How stable is the system?
-- **Trend Analysis**: Are we improving over time?
+
+- **Executive Summary**: Can we release? 
+- **Quality Metrics**: How stable is the system? 
+- **Trend Analysis**: Are we improving over time? 
 - **Visual Evidence**: What was actually tested?
 
 ---
@@ -3861,89 +4133,117 @@ But stakeholders need:
 pip install pytest-glow-report
 ```
 
+The plugin is enabled as soon as it is installed. Run `pytest` normally and it writes `reports/report.html`, `reports/report.json` and `reports/history.sqlite`. Use `pytest --no-glow-report` to skip it for one run.
+
 ## Configuration
 
 ```ini
 # pytest.ini
 [pytest]
-addopts = --glow-report=./reports/ --glow-report-title="E-Commerce Test Suite"
+addopts = --report-dir=reports
 ```
+
+The title and run labels come from environment variables, so CI can set them per build:
+
+```bash
+export GLOW_REPORT_TITLE="E-Commerce Test Suite"
+export GLOW_ENVIRONMENT="Staging"
+export GLOW_BUILD="v2.1.0"
+pytest
+```
+
+Other labels are `GLOW_TEST_TYPE`, `GLOW_BROWSER` and `GLOW_DEVICE`. For more metadata or a logo, implement the `pytest_html_environment` and `pytest_html_logo` hooks in `conftest.py`.
 
 ## Report Features
 
-### 1. Executive Dashboard
+### 1. Summary and History
 
 The report header shows:
-- Overall pass rate with RAG (Red/Amber/Green) status
-- Quality Score (0-100)
-- Release Recommendation (Go/No-Go/Conditional)
-- Test execution time
-- Environment information
 
-### 2. Quality Score Calculation
+- Passed, failed and skipped counts with the pass rate 
+- Test execution time 
+- Environment information (Python version, platform and your labels) 
+- A history of the last 10 runs that used the same report directory
+
+Every test row has its setup, call and teardown outcome, the failure traceback, captured output, and a search box with pass, fail and skip filters. The HTML loads its styles from public CDNs, so viewing it needs internet access.
+
+### 🔍 Deep Dive: Build Your Own Release Gate
+
+The report does not compute a quality score or a release recommendation. If your team wants one, read `report.json` after the run and apply your own rule:
 
 ```python
-# Quality Score formula:
-quality_score = (
-    pass_rate * 0.5 +           # 50% weight: raw pass rate
-    stability * 0.25 +          # 25% weight: test stability over time
-    coverage * 0.15 +           # 15% weight: code coverage
-    speed * 0.10                # 10% weight: execution time vs baseline
-)
+import json
 
-# Ratings:
-# 90-100: Excellent (Release Ready) ✅
-# 75-89:  Good (Minor Issues) ⚠️
-# 60-74:  Fair (Needs Attention) ⚠️
-# <60:    Poor (Block Release) ❌
+with open("reports/report.json") as f:
+    data = json.load(f)
+
+tests = data["tests"]
+passed = sum(1 for t in tests if t["outcome"] == "passed")
+pass_rate = 100 * passed / len(tests)
+
+# Example rule: agree on the numbers with your team
+print(f"Pass rate: {pass_rate:.1f}%")
+if pass_rate < 95:
+    raise SystemExit("Release blocked: pass rate below 95%")
 ```
 
-### 3. Screenshot Integration
+### 3. Steps, Logs and Screenshots
 
 ```python
 import pytest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from beautiful_report import report
 
-def test_checkout(driver, glow_report):
-    driver.get("https://shop.example.com/checkout")
-    
+@pytest.fixture
+def driver():
+    driver = webdriver.Chrome()
+    yield driver
+    driver.quit()
+
+@report.step("Log in")
+def log_in(driver):
+    driver.get("https://app.example.com/login")
+    driver.find_element(By.ID, "email").send_keys("user@example.com")
+    driver.find_element(By.ID, "login-btn").click()
+
+def test_login_shows_dashboard(driver):
+    log_in(driver)
+
     # Capture step screenshot
-    glow_report.screenshot(driver, "checkout_page_loaded")
-    
-    driver.find_element(By.ID, "pay-now").click()
-    
-    # Capture result
-    glow_report.screenshot(driver, "payment_result")
-    
-    assert "Order Confirmed" in driver.page_source
+    report.screenshot("dashboard loaded", driver=driver)
+    report.log("Logged in as user@example.com")
+
+    assert driver.find_element(By.ID, "msg").text == "Success"
 ```
 
-### 4. Failure Clustering
+Steps, logs and screenshots are attached to the test that was running. Screenshots are embedded in both `report.html` and `report.json`, so keep them few and small.
 
-Similar failures are automatically grouped:
-- `ElementNotInteractableException` in login flow (5 occurrences)
-- Timeout waiting for `#dashboard` (3 occurrences)
-- Database connection refused (2 occurrences)
+### 4. unittest Support
+
+Suites that use Python's built-in unittest runner get the same report through the CLI: `glow-report run -- unittest discover -s tests`.
 
 ---
 
 # PART IX: ENTERPRISE PATTERNS
+
 ## Architectures That Scale
 
 ---
 
 # Chapter 17: The Four-Layer Architecture
 
+**What you’ll learn** Separate test intent, domain actions, page mechanics, and infrastructure.
+
+**Put it to work** Change a locator without editing the business assertion or fixture lifecycle.
+
 ## Why Framework Architecture Matters
 
-A well-architected framework:
-- Reduces maintenance by 60%
-- Enables parallel test development
-- Simplifies onboarding new team members
-- Isolates changes to specific layers
+A well-architected framework separates responsibilities, supports parallel development, and localizes changes. Measure maintenance effort in your own codebase rather than assuming a fixed percentage improvement.
 
 ---
 
-## The Four Layers
+## 🔍 Deep Dive: The Four-Layer Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -4008,7 +4308,7 @@ A well-architected framework:
 ## Layer Principles
 
 | Layer | Knows About | Does NOT Know About |
-|-------|-------------|---------------------|
+| --- | --- | --- |
 | Test | Business | Core, Infrastructure |
 | Business | Core | Infrastructure |
 | Core | Infrastructure | Tests, Business logic |
@@ -4032,10 +4332,10 @@ def test_order_history(driver, api_client):
     # Fast API-based setup (< 1 second)
     user = api_client.create_user()
     order = api_client.create_order(user.id, products=["SKU-1"])
-    
+
     # Restore session
     login_via_teleport(driver, user)
-    
+
     # Only test the UI part we're verifying
     navigate_to_history(driver)
     assert_order_visible(driver, order.id)
@@ -4044,6 +4344,10 @@ def test_order_history(driver, api_client):
 ---
 
 # Chapter 18: CI/CD Integration Patterns
+
+**What you’ll learn** Keep CI runs reproducible, isolated, and diagnosable.
+
+**Put it to work** Compare local and CI inputs and verify artifact upload after a failing test.
 
 ## GitHub Actions Best Practices
 
@@ -4062,15 +4366,15 @@ jobs:
       matrix:
         browser: [chrome, firefox, edge]
         python-version: ['3.10', '3.11', '3.12']
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      
+
       - name: Run tests on ${{ matrix.browser }}
         run: pytest tests/ --browser=${{ matrix.browser }}
 ```
@@ -4078,7 +4382,7 @@ jobs:
 ### Artifact Management
 
 ```yaml
-      - name: Upload test reports
+- name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -4092,7 +4396,7 @@ jobs:
 ### Caching Dependencies
 
 ```yaml
-      - name: Cache pip packages
+- name: Cache pip packages
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
@@ -4109,39 +4413,52 @@ jobs:
 
 # Chapter 19: WVDAutomation - Windows Virtual Desktop
 
+**What you’ll learn** Model remote-desktop constraints explicitly.
+
+**Put it to work** Test reconnect, resolution changes, and session cleanup before scaling execution.
+
 ## The WVD Challenge
 
 Windows Virtual Desktop (Azure Virtual Desktop) sessions present:
-- Different connection methods than Citrix
-- Azure AD authentication
-- Session persistence challenges
+
+- Different connection methods than Citrix 
+- Azure AD authentication 
+- Session persistence challenges 
 - Scaling across multiple hosts
+
+Inside the session the application is only pixels, so DOM based tools cannot see it. This is the problem Visual Sonar (Chapter 14) was built for.
 
 ---
 
 ## Installation
 
+The [wvdautomation](https://github.com/godhiraj-code/wvdautomation) repository on GitHub is the home of Visual Sonar. There is no separate `wvdautomation` package on PyPI; install Visual Sonar instead (Windows only):
+
 ```bash
-pip install wvdautomation
+pip install visual-sonar
 ```
 
 ## Basic Usage
 
-```python
-from wvdautomation import WVDSession
+Signing in to the workspace and opening the session is not automated by the tool. Start the session first, bring the remote window to the front, then map and run your form as shown in Chapter 14:
 
-session = WVDSession(
-    workspace_url="https://rdweb.wvd.microsoft.com/...",
-    username="user@company.com",
-    password=os.environ["WVD_PASSWORD"]
-)
+```bash
+# 1. Map the form once: Visual Sonar presses TAB and you name each detected field
+visual-sonar map
+#    Names use name:type, e.g. username:text, password:text, signin:click
 
-with session.connect() as desktop:
-    # Now you have a Pyautogui-like interface
-    desktop.click_text("Microsoft Edge")
-    desktop.wait_for_window("Edge")
-    desktop.type_text("https://internal-app.company.com")
+# 2. Put your values in input.json (keep it out of Git)
+#    {"username": "admin@company.com", "password": "...", "signin": true}
+
+# 3. Run the automation
+visual-sonar run
+
+# Data-driven runs and OCR checks
+visual-sonar batch test_cases/users.csv
+visual-sonar extract verify 100 200 300 50 "Welcome"
 ```
+
+The repository also contains a WVD simulator, so you can practise mapping and running flows before you point them at a real remote desktop.
 
 ---
 
@@ -4151,11 +4468,16 @@ with session.connect() as desktop:
 
 # Chapter 20: Effort Estimation for Automation Projects
 
+**What you’ll learn** Estimate with assumptions, ranges, and measured feedback.
+
+**Put it to work** Break one feature into tasks and compare the estimate with actual work.
+
 ## The Estimation Problem
 
 Automation estimation is notoriously inaccurate:
-- "This should take 2 hours" → 2 days
-- "Simple login automation" → 3 weeks (with SSO, MFA, session handling)
+
+- "This should take 2 hours" → 2 days 
+- "Simple login automation" → 3 weeks (with SSO, MFA, session handling) 
 - "Just automate the happy path" → But what about error states?
 
 ---
@@ -4178,14 +4500,14 @@ GOOD: "Automate login flow":
   ├── Handle SSO redirect (4h)
   ├── Handle MFA flow (4h)
   └── Create test data fixtures (2h)
-  
+
 TOTAL: 18h (not "4 hours")
 ```
 
 ### Step 2: Classify by Complexity
 
 | Complexity | Examples | Multiplier |
-|------------|----------|------------|
+| --- | --- | --- |
 | SIMPLE | Static content, standard forms | 1x |
 | MEDIUM | Dynamic content, validation, modals | 2x |
 | COMPLEX | Multi-step wizards, real-time updates, file handling | 4x |
@@ -4193,7 +4515,7 @@ TOTAL: 18h (not "4 hours")
 ### Step 3: Apply Base Estimates
 
 | Component | Simple | Medium | Complex |
-|-----------|--------|--------|---------|
+| --- | --- | --- | --- |
 | Page Object | 2h | 4h | 8h |
 | Form Field | 0.5h | 1h | 2h |
 | Table/Grid | 2h | 4h | 8h |
@@ -4228,12 +4550,17 @@ Confidence level → Buffer:
 
 # Chapter 21: SQL for Automation Testers
 
+**What you’ll learn** Validate data with targeted, understandable queries.
+
+**Put it to work** Inspect the query plan and confirm that the query returns the intended rows.
+
 ## Why SQL Matters
 
 Automation often requires:
-- Verifying data persistence
-- Seeding test data
-- Cleaning up after tests
+
+- Verifying data persistence 
+- Seeding test data 
+- Cleaning up after tests 
 - Diagnosing failures
 
 ---
@@ -4247,8 +4574,8 @@ Automation often requires:
 SELECT * FROM orders WHERE YEAR(created_at) = 2024;
 
 -- ✅ GOOD: SARGable (Search ARGument ABLE)
-SELECT * FROM orders 
-WHERE created_at >= '2024-01-01' 
+SELECT * FROM orders
+WHERE created_at >= '2024-01-01'
   AND created_at < '2025-01-01';
 ```
 
@@ -4276,6 +4603,10 @@ CREATE INDEX idx_orders_user_date ON orders(user_id, created_at);
 
 # Chapter 22: Legacy Lessons - Wisdom from UFT/QTP
 
+**What you’ll learn** Reuse sound abstraction and recovery ideas from legacy tools.
+
+**Put it to work** Make a recovery visible and confirm it does not hide the original defect.
+
 ## What the Old Guard Got Right
 
 Despite being "legacy," UFT/QTP established patterns still valuable today:
@@ -4289,7 +4620,7 @@ class ObjectRepository:
         class HomePage:
             SEARCH_BOX = (By.ID, "twotabsearchtextbox")
             SEARCH_BUTTON = (By.ID, "nav-search-submit-button")
-        
+
         class ResultsPage:
             PRODUCT_LIST = (By.CSS_SELECTOR, "div.s-result-item")
 ```
@@ -4317,32 +4648,179 @@ def with_recovery(max_retries=3):
 
 ---
 
+# Chapter 23: AI-Powered Testing - Privacy-First & Local SLMs
+
+**What you’ll learn** Separate AI integration, model quality, and execution correctness.
+
+**Put it to work** Build a small fixture set and define a rubric before comparing model outputs.
+
+## Separate three kinds of evidence
+
+An AI feature has deterministic software around a variable model. Test those layers separately so a failing network call, a malformed tool argument, and a poor answer do not collapse into one vague failure.
+
+| Layer | What to test | Evidence |
+| --- | --- | --- |
+| Integration | Request structure, parsing, timeouts, cancellation, retries | Deterministic fixtures and contract assertions |
+| Model behavior | Task quality across representative and adversarial inputs | A versioned evaluation set and a scored rubric |
+| Agent execution | Tool selection, permitted actions, actual state changes | A trace tied to independent postconditions |
+
+## Local models: a deployment choice
+
+Local inference can reduce dependence on external APIs, but it does not guarantee privacy, predictable latency, or zero cost. Audit telemetry, logs, model downloads, access controls, hardware contention, and data retention. Compare local and hosted options using your own workload and quality thresholds.
+
+## Treat locator healing as a proposal
+
+A model may suggest a replacement selector. That suggestion must not silently change what a regression test means. Preserve the original failure, capture the candidate and its context, check that it identifies one expected target, and require review before updating the test contract.
+
+```python
+def validate_locator_candidate(driver, css_selector, expected_tag):
+    # Validation only: this function never clicks or changes the saved locator.
+    matches = driver.find_elements("css selector", css_selector)
+    if len(matches) != 1:
+        raise AssertionError("Candidate must identify exactly one element")
+    candidate = matches[0]
+    if candidate.tag_name.lower() != expected_tag.lower():
+        raise AssertionError("Candidate has the wrong element type")
+    if not candidate.is_displayed() or not candidate.is_enabled():
+        raise AssertionError("Candidate is not currently actionable")
+    return candidate
+```
+
+This check is deliberately incomplete: uniqueness and visibility do not establish business identity. Validate an accessible name or another stable domain attribute and the resulting application state. Invalid selector syntax should fail validation rather than trigger another unbounded model call.
+
+## Fixtures are not model evaluations
+
+A recorded or synthetic response is useful for testing your application’s handling of an output. It does not prove that a live model will produce a correct answer. Keep offline integration checks separate from a smaller, controlled evaluation run against the configured model.
+
+- Include malformed JSON, missing fields, tool failures, refusal, timeout, and cancellation cases.
+- For streaming, test partial output, disconnects, completion signals, and cleanup.
+- Record model identity, prompt version, evaluation data version, and scoring rules.
+- Review a sample of failures and successes; avoid treating answer length or a model’s own confidence as correctness.
+
+## A practical release gate
+
+Require deterministic integration tests to pass, inspect changes on a fixed evaluation set, and verify that execution stayed within allowed actions. Define thresholds before comparing candidates. For a failed run, save the input, relevant redacted output, tool trace, expected result, and observed state.
+
+# Chapter 24: The Sentinel - Toward Fully Autonomous Quality Agents
+
+**What you’ll learn** Design a bounded agent coordinator with independent verification.
+
+**Put it to work** Inject a false success report and require the verifier to detect missing evidence.
+
+**Architecture proposal.** The Sentinel is a design for coordinating test tools and agent actions. This chapter describes contracts to implement and evaluate; it is not a claim that a fully autonomous quality system has been delivered.
+
+## Give each component one responsibility
+
+| Component | Responsibility | Must not do |
+| --- | --- | --- |
+| Observer | Capture page, command, and environment evidence | Declare success from logs alone |
+| Planner | Propose an action and its expected outcome | Execute outside the policy boundary |
+| Policy gate | Check scope, permissions, budget, and prior outcomes | Interpret a timeout as permission |
+| Executor | Run an approved action with a bounded deadline | Retry irreversible actions blindly |
+| Verifier | Check independent postconditions and record evidence | Trust an agent’s self-reported completion |
+
+## Make the state machine explicit
+
+```
+observe → propose → authorize → execute → verify
+                       ↓           ↓          ↓
+                    blocked      failed    complete / unresolved
+```
+
+Use a run identifier and an action identifier across every transition. Preserve the original plan, authorization decision, timestamps, tool result, and verification record. A subprocess exiting successfully is useful evidence; it does not establish that a requested deployment, edit, or transaction actually happened.
+
+## Design the failure boundaries first
+
+- **Timeout:** stop or cancel work where possible and report unknown state until verification resolves it.
+- **Retry:** check whether the outcome already exists and whether the operation is safe to repeat.
+- **Disagreement:** retain conflicting evidence and require review rather than choosing the most confident answer.
+- **Budget exhaustion:** return an incomplete result with artifacts and a bounded next step.
+
+## Validate the coordinator
+
+Start with a read-only diagnostic flow. Inject a missing artifact, a hanging command, a repeated request, and a misleading success message. The coordinator should distinguish failed, blocked, unresolved, and verified completion without losing the evidence from the first attempt.
+
+# Chapter 25: Constellation Based Automation - The Milky Way Strategy
+
+**What you’ll learn** Coordinate services without losing ownership of the browser.
+
+**Put it to work** Inject a timeout and a duplicate command; verify that neither causes an unsafe repeat.
+
+**Architecture proposal.** Constellation Based Automation separates test intent from environment coordination. A hub owns the browser session while small services observe or handle explicitly permitted conditions. The design can complement page objects; it does not remove the need for stable interfaces, assertions, or maintenance.
+
+## Keep one owner of browser actions
+
+Concurrent services can race to click, navigate, or restore authentication. Route every mutation through the hub. Give a service a time-limited action lease, reject stale commands, and release the lease after completion or cancellation.
+
+| Role | Useful responsibility | Boundary |
+| --- | --- | --- |
+| Hub | Own the session and order actions | One mutation at a time |
+| Waiter | Report relevant readiness signals | Quietness is not correctness |
+| Environment handler | Dismiss explicitly recognized, nonessential overlays | Never hide an unexpected error or a business-critical consent flow |
+| Historian | Record events and approved state snapshots | Redact secrets and isolate identities |
+
+## Define the protocol contract
+
+A message needs a protocol version, run ID, action ID, deadline, operation, and scoped parameters. The reply should distinguish accepted, rejected, complete, and unresolved. Keep transport-level success separate from successful execution.
+
+```json
+{
+  "protocolVersion": 1,
+  "runId": "run-042",
+  "actionId": "action-007",
+  "operation": "check-readiness",
+  "timeoutMs": 2000,
+  "parameters": {"target": "checkout-submit"},
+  "requiresApproval": false
+}
+```
+
+This is an illustrative application envelope, not a published protocol specification. Agree on authentication, schema validation, compatibility, cancellation, and duplicate-message handling before connecting services.
+
+## A timeout is a policy decision
+
+There is no universal handshake budget. Measure service latency and define separate deadlines for observation and mutation. A missing readiness response should leave an action blocked or unresolved; do not proceed merely to keep the test fast.
+
+## Make interventions visible
+
+Record the original intent, the condition that triggered an intervention, the policy that allowed it, and before/after evidence. Preserve unexpected overlays in failure artifacts. Compare runs with and without the coordinator to detect cases where helpful recovery is hiding a regression.
+
+## Start with one controlled experiment
+
+1. Choose one flow and one known, nonessential overlay.
+2. Run the observer without allowing mutations and classify its proposed interventions.
+3. Enable one approved intervention and verify the business outcome independently.
+4. Inject a delayed response, a duplicate event, and an unrecognized overlay.
+5. Compare false interventions, runtime, and diagnostic quality before expanding the design.
+
 # APPENDICES
 
 ---
 
-## Appendix A: Tool Installation Quick Reference
+## Appendix A: The Complete Toolkit
 
-| Tool | Install Command | Requires |
-|------|-----------------|----------|
-| Waitless | `pip install waitless` | Python 3.8+ |
-| Visual Guard | `pip install visual-guard` | OpenCV, NumPy |
-| Selenium Teleport | `pip install selenium-teleport` | — |
-| StealthAutomation | `pip install stealthautomation` | — |
-| Lumos ShadowDOM | `pip install lumos-shadowdom` | — |
-| Selector Scout | `pip install selector-scout` | Gemini API key |
-| Chatbot Test | `pip install selenium-chatbot-test` | Sentence Transformers |
-| pytest-mockllm | `pip install pytest-mockllm` | — |
-| Visual Sonar | `pip install visual-sonar` | Tesseract OCR |
-| pytest-glow-report | `pip install pytest-glow-report` | — |
-| Project Vandal | `pip install vandal-testing` | — |
+Every project in this book is open source. Install names, source code and articles:
+
+| Tool | Problem | Install | Source | Article |
+| --- | --- | --- | --- | --- |
+| Waitless | Flaky tests | [`pip install waitless`](https://pypi.org/project/waitless/) | [github.com/godhiraj-code/waitless](https://github.com/godhiraj-code/waitless) | [Article](https://www.dhirajdas.dev/blog/waitless-eliminate-flaky-tests) |
+| Visual Guard | Visual regression | [`pip install visual-guard`](https://pypi.org/project/visual-guard/) | [github.com/godhiraj-code/visual-guard](https://github.com/godhiraj-code/visual-guard) | [Article](https://www.dhirajdas.dev/blog/visual-guard-release) |
+| Selenium Teleport | Slow authentication | [`pip install selenium-teleport`](https://pypi.org/project/selenium-teleport/) | [github.com/godhiraj-code/selenium-teleport](https://github.com/godhiraj-code/selenium-teleport) | [Article](https://www.dhirajdas.dev/blog/selenium-teleport) |
+| SB Stealth Wrapper | Bot detection on sites you are allowed to test | [`pip install sb-stealth-wrapper`](https://pypi.org/project/sb-stealth-wrapper/) | [github.com/godhiraj-code/stealthautomation](https://github.com/godhiraj-code/stealthautomation) | [Article](https://www.dhirajdas.dev/blog/sb-stealth-wrapper-launch) |
+| Lumos ShadowDOM | Shadow DOM traversal | [`pip install lumos-shadowdom`](https://pypi.org/project/lumos-shadowdom/) | [github.com/godhiraj-code/lumos-shadowdom](https://github.com/godhiraj-code/lumos-shadowdom) | [Article](https://www.dhirajdas.dev/blog/conquering-shadow-dom-lumos) |
+| Selenium Chatbot Test | AI chatbot testing | [`pip install selenium-chatbot-test`](https://pypi.org/project/selenium-chatbot-test/) | [github.com/godhiraj-code/selenium-chatbot-test](https://github.com/godhiraj-code/selenium-chatbot-test) | [Article](https://www.dhirajdas.dev/blog/testing-genai-chatbots-selenium) |
+| pytest-mockllm | LLM testing | [`pip install pytest-mockllm`](https://pypi.org/project/pytest-mockllm/) | [github.com/godhiraj-code/pytest-mockllm](https://github.com/godhiraj-code/pytest-mockllm) | [Article](https://www.dhirajdas.dev/blog/pytest-mockllm-true-fidelity) |
+| Visual Sonar | Remote desktop & VDI automation (Windows) | [`pip install visual-sonar`](https://pypi.org/project/visual-sonar/) | [github.com/godhiraj-code/wvdautomation](https://github.com/godhiraj-code/wvdautomation) | [Article](https://www.dhirajdas.dev/blog/visual-sonar-automation) |
+| pytest-glow-report | HTML test reports | [`pip install pytest-glow-report`](https://pypi.org/project/pytest-glow-report/) | [github.com/godhiraj-code/pytest-glow-report](https://github.com/godhiraj-code/pytest-glow-report) | [Article](https://www.dhirajdas.dev/blog/pytest-glow-report-beautiful-test-reports) |
+| Project Vandal | UI mutation testing | [`pip install project-vandal`](https://pypi.org/project/project-vandal/) | [github.com/godhiraj-code/vandal](https://github.com/godhiraj-code/vandal) | [Article](https://www.dhirajdas.dev/blog/project-vandal-ui-mutation-testing) |
+| Selector Scout | AI generated locators | Not yet published | Not yet published |  |
 
 ---
 
 ## Appendix B: Common Exception Reference
 
 | Exception | Cause | Solution |
-|-----------|-------|----------|
+| --- | --- | --- |
 | `NoSuchElementException` | Element not in DOM | Wait for presence, check selector |
 | `ElementNotInteractableException` | Element exists but can't be interacted with | Wait for clickable, check visibility |
 | `StaleElementReferenceException` | Element was removed/re-added to DOM | Re-find element, use Waitless |
@@ -4355,7 +4833,7 @@ def with_recovery(max_retries=3):
 ## Appendix C: Glossary
 
 | Term | Definition |
-|------|------------|
+| --- | --- |
 | **DOM** | Document Object Model - tree structure of HTML elements |
 | **Shadow DOM** | Encapsulated DOM tree hidden from main document |
 | **Light DOM** | Regular DOM, visible to querySelector |
@@ -4400,47 +4878,8 @@ Hours spent building reusable tools save days of repetitive work. The projects i
 
 ## The Complete Toolkit
 
-Every project in this book is open-source and available:
-
-| Tool | Problem | GitHub |
-|------|---------|--------|
-| Waitless | Flaky tests | github.com/godhiraj-code/waitless |
-| Visual Guard | Visual regression | github.com/godhiraj-code/visual-guard |
-| Selenium Teleport | Slow authentication | github.com/godhiraj-code/selenium-teleport |
-| StealthAutomation | Bot detection | github.com/godhiraj-code/stealthautomation |
-| Lumos ShadowDOM | Shadow DOM traversal | github.com/godhiraj-code/lumos-shadowdom |
-| Selector Scout | Brittle selectors | github.com/godhiraj-code/selector-scout |
-| Chatbot Test | AI chatbot testing | github.com/godhiraj-code/selenium-chatbot-test |
-| pytest-mockllm | LLM testing | github.com/godhiraj-code/pytest-mockllm |
-| Visual Sonar | Remote desktop automation | github.com/godhiraj-code/visual-sonar |
-| pytest-glow-report | Enterprise reporting | github.com/godhiraj-code/pytest-glow-report |
-| Project Vandal | UI mutation testing | github.com/godhiraj-code/vandal |
-| WVDAutomation | Windows Virtual Desktop | github.com/godhiraj-code/wvdautomation |
-
----
-
-## About the Author
-
-**Dhiraj Das** is an Automation Solutions Architect with over 10 years of experience building enterprise test automation frameworks. His work has:
-
-- Reduced flaky test failures by 70%+ across multiple organizations
-- Cut manual regression time by 95%
-- Created 15+ open-source automation tools published on PyPI
-- Served teams across fintech, airline, e-commerce, and enterprise software
-
-He is also co-author of the **TDCT Algorithm** (Triangle-Density based Clustering Technique), published in IOSR Journal of Computer Engineering—a testament to the algorithmic thinking that powers his automation innovations.
-
-His philosophy: *"The best automation is invisible—it catches bugs, runs reliably, and stays out of everyone's way."*
-
-**Connect:**
-- Website: [www.dhirajdas.dev](https://www.dhirajdas.dev)
-- GitHub: [github.com/godhiraj-code](https://github.com/godhiraj-code)
-- LinkedIn: [linkedin.com/in/dhiraj-das-614509168](https://www.linkedin.com/in/dhiraj-das-614509168)
+Every project in this book is open source. Install names, source code and articles for each one are listed in Appendix A.
 
 ---
 
 *© 2025 Dhiraj Das. All rights reserved.*
-
-*This book represents years of practical experience solving real automation challenges. The tools, patterns, and approaches described have been deployed in production environments and refined through countless iterations.*
-
-*For questions, contributions, or speaking inquiries: visit [www.dhirajdas.dev](https://www.dhirajdas.dev)*
