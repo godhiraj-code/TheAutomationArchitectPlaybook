@@ -683,8 +683,8 @@ driver.execute_cdp_cmd("Network.enable", {})
     <p>Every Selenium command (e.g., <code>element.is_displayed()</code>) is an out-of-process network call. Even
         on localhost, there is overhead for serialization, network transmission, and deserialization. When you put a
         <code>find_element</code> call inside a tight loop, you're not just waiting for the browser; you're paying a
-        "tax" of 5-10ms per call just for the communication protocol itself. This is why batching interactions in
-        JavaScript (using <code>execute_script</code>) is often 10x faster for complex tasks.
+        rough illustration, a "tax" of about 5-10ms per call just for the communication protocol itself. This is why batching interactions in
+        JavaScript (using <code>execute_script</code>) is often much faster for complex tasks. A 10x difference is an illustration, not a measured benchmark.
     </p>
     <hr>
     <h2 id="hands-on-exercise-exploring-browser-internals">🔧 Hands-On Exercise: Exploring Browser Internals</h2>
@@ -781,7 +781,7 @@ Mutations observed: ['childList']
     <p>Flaky tests are the silent killers of automation credibility. A test that passes on Monday, fails on Tuesday, and
         passes again on Wednesday—with zero code changes—destroys trust faster than any bug in production.</p>
     <h3 id="the-true-cost-of-flakiness">The True Cost of Flakiness</h3>
-    <p>Consider these statistics from real enterprise environments:</p>
+    <p>The figures below are illustrative example numbers, not measured data:</p>
     <table>
         <thead>
             <tr>
@@ -1059,6 +1059,7 @@ driver.find_element(By.ID, "submit-btn").click()
         <li><strong>Still flaky</strong>: Sometimes 5 seconds isn't enough</li>
         <li><strong>Compounds</strong>: 100 tests × 3 sleeps each × 5 seconds = <strong>25 minutes wasted</strong></li>
     </ul>
+    <p><em>The 25 minutes figure is a worked example (100 tests, 3 sleeps, 5 seconds each), not measured data.</em></p>
     <h3 id="solution-2-explicit-waits-better-but-incomplete">Solution 2: Explicit Waits - Better But Incomplete</h3>
     <pre><code class="language-python">from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -1191,6 +1192,7 @@ def get_pending_requests(driver):
 </code></pre>
     <hr>
     <h2 id="chapter-2-summary">📋 Chapter 2 Summary</h2>
+    <p><em>Illustrative example numbers, not measured data.</em></p>
     <table>
         <thead>
             <tr>
@@ -1674,6 +1676,7 @@ finally:
             </tr>
         </tbody>
     </table>
+    <p><em>Illustrative example numbers, not measured data.</em></p>
     <hr>
     <h2 id="the-limitation-of-pixel-perfect-comparison">The Limitation of Pixel-Perfect Comparison</h2>
     <p>Traditional visual testing compares screenshots pixel-by-pixel:</p>
@@ -2442,6 +2445,7 @@ jobs:
 </code></pre>
     <hr>
     <h2 id="performance-impact">Performance Impact</h2>
+    <p><em>Illustrative worked example, not measured data. The 10 second login matches the example in Chapter 5.</em></p>
     <table>
         <thead>
             <tr>
@@ -2736,6 +2740,7 @@ document.addEventListener('keydown', e =&gt; {
 // Bot: Perfect consistent timing, or all keys instant
 </code></pre>
     <h3 id="click-behavior">Click Behavior</h3>
+    <p><em>Illustrative example numbers, not measured data.</em></p>
     <table>
         <thead>
             <tr>
@@ -3522,6 +3527,7 @@ driver.quit()
 <h1 id="chapter-13-pytest-mockllm-testing-ai-features-without-api-costs">Chapter 13: Pytest-MockLLM - Testing AI
         Features Without API Costs</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Use deterministic LLM fixtures to test integration behavior.</p><p><strong>Put it to work</strong> Include a malformed response and a timeout, then keep a separate live-model evaluation.</p></aside>
     <h2 id="the-problem-with-testing-llm-powered-features">The Problem with Testing LLM-Powered Features</h2>
+    <p><em>Illustrative example numbers, not measured data.</em></p>
     <p>Every call to OpenAI/Claude/Gemini costs money and time:</p>
     <ul>
         <li>API calls: $0.01-$0.10 per request</li>
@@ -4367,7 +4373,7 @@ visual-sonar extract verify 100 200 300 50 "Welcome"
     <h1 id="chapter-20-effort-estimation-for-automation-projects">Chapter 20: Effort Estimation for Automation Projects
     </h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Estimate with assumptions, ranges, and measured feedback.</p><p><strong>Put it to work</strong> Break one feature into tasks and compare the estimate with actual work.</p></aside>
     <h2 id="the-estimation-problem">The Estimation Problem</h2>
-    <p>Automation estimation is notoriously inaccurate:</p>
+    <p>Automation estimation is notoriously inaccurate. These are illustrative examples, not measured project data:</p>
     <ul>
         <li>"This should take 2 hours" → 2 days</li>
         <li>"Simple login automation" → 3 weeks (with SSO, MFA, session handling)</li>
@@ -4376,7 +4382,7 @@ visual-sonar extract verify 100 200 300 50 "Welcome"
     <hr>
     <h2 id="the-five-step-framework">The Five-Step Framework</h2>
     <h3 id="step-1-decompose-ruthlessly">Step 1: Decompose Ruthlessly</h3>
-    <p><strong>Rule</strong>: If a task can't be broken into pieces under 4 hours, you don't understand it yet.</p>
+    <p><strong>Rule of thumb</strong>: If a task can't be broken into pieces under 4 hours, you don't understand it yet.</p>
     <pre><code>BAD:  "Automate login flow" (1 vague task)
 
 GOOD: "Automate login flow":
@@ -4391,7 +4397,9 @@ GOOD: "Automate login flow":
 
 TOTAL: 18h (not "4 hours")
 </code></pre>
+    <p><em>The hour breakdown is an illustrative example, not measured data.</em></p>
     <h3 id="step-2-classify-by-complexity">Step 2: Classify by Complexity</h3>
+    <p><em>Rule of thumb figures, not measured data. Adjust them from your own past work.</em></p>
     <table>
         <thead>
             <tr>
@@ -4419,6 +4427,7 @@ TOTAL: 18h (not "4 hours")
         </tbody>
     </table>
     <h3 id="step-3-apply-base-estimates">Step 3: Apply Base Estimates</h3>
+    <p><em>Rule of thumb figures, not measured data. Adjust them from your own past work.</em></p>
     <table>
         <thead>
             <tr>
@@ -4462,6 +4471,7 @@ TOTAL: 18h (not "4 hours")
         </tbody>
     </table>
     <h3 id="step-4-add-multipliers">Step 4: Add Multipliers</h3>
+    <p><em>Rule of thumb figures, not measured data. Adjust them from your own past work.</em></p>
     <pre><code>Environment factors:
   × 1.5 for legacy system without data-testid attributes
   × 1.3 for Shadow DOM heavy apps
@@ -4474,6 +4484,7 @@ Team factors:
   × 1.2 for distributed teams
 </code></pre>
     <h3 id="step-5-buffer-for-unknowns">Step 5: Buffer for Unknowns</h3>
+    <p><em>Rule of thumb figures, not measured data. Adjust them from your own past work.</em></p>
     <pre><code>Confidence level → Buffer:
   High confidence (done before):   +20%
   Medium confidence (similar):     +40%

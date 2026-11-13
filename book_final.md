@@ -526,7 +526,7 @@ driver.execute_cdp_cmd("Network.enable", {})
 
 ### 🔍 Deep Dive: The Hidden Latency - Cost of a WebDriver Command
 
-Every Selenium command (e.g., `element.is_displayed()`) is an out-of-process network call. Even on localhost, there is overhead for serialization, network transmission, and deserialization. When you put a `find_element` call inside a tight loop, you're not just waiting for the browser; you're paying a "tax" of 5-10ms per call just for the communication protocol itself. This is why batching interactions in JavaScript (using `execute_script`) is often 10x faster for complex tasks.
+Every Selenium command (e.g., `element.is_displayed()`) is an out-of-process network call. Even on localhost, there is overhead for serialization, network transmission, and deserialization. When you put a `find_element` call inside a tight loop, you're not just waiting for the browser; you're paying a rough illustration, a "tax" of about 5-10ms per call just for the communication protocol itself. This is why batching interactions in JavaScript (using `execute_script`) is often much faster for complex tasks. A 10x difference is an illustration, not a measured benchmark.
 
 ---
 
@@ -616,7 +616,7 @@ Flaky tests are the silent killers of automation credibility. A test that passes
 
 ### The True Cost of Flakiness
 
-Consider these statistics from real enterprise environments:
+The figures below are illustrative example numbers, not measured data:
 
 | Metric | Impact |
 | --- | --- |
@@ -885,6 +885,8 @@ driver.find_element(By.ID, "submit-btn").click()
 - **Still flaky**: Sometimes 5 seconds isn't enough 
 - **Compounds**: 100 tests × 3 sleeps each × 5 seconds = **25 minutes wasted**
 
+*The 25 minutes figure is a worked example (100 tests, 3 sleeps, 5 seconds each), not measured data.*
+
 ### Solution 2: Explicit Waits - Better But Incomplete
 
 ```python
@@ -1039,6 +1041,8 @@ def get_pending_requests(driver):
 ---
 
 ## 📋 Chapter 2 Summary
+
+*Illustrative example numbers, not measured data.*
 
 | Flakiness Category | Percentage | Primary Solution |
 | --- | --- | --- |
@@ -1502,6 +1506,8 @@ A user sees pixels, not DOM elements. Visual testing validates what users actual
 | Modal renders behind overlay | ✅ PASS (elements exist) | "The site is frozen!" |
 | Font failed to load | ✅ PASS (text displays) | "This looks unprofessional" |
 | Mobile layout broken | ✅ PASS (desktop tested) | 50% of users can't use site |
+
+*Illustrative example numbers, not measured data.*
 
 ---
 
@@ -2343,6 +2349,8 @@ jobs:
 
 ## Performance Impact
 
+*Illustrative worked example, not measured data. The 10 second login matches the example in Chapter 5.*
+
 | Scenario | Time Per Test | For 500 Tests |
 | --- | --- | --- |
 | Full UI Login | 10-15s | 83+ minutes |
@@ -2648,6 +2656,8 @@ document.addEventListener('keydown', e => {
 ```
 
 ### Click Behavior
+
+*Illustrative example numbers, not measured data.*
 
 | Metric | Human | Bot |
 | --- | --- | --- |
@@ -3558,6 +3568,8 @@ driver.quit()
 **Put it to work** Include a malformed response and a timeout, then keep a separate live-model evaluation.
 
 ## The Problem with Testing LLM-Powered Features
+
+*Illustrative example numbers, not measured data.*
 
 Every call to OpenAI/Claude/Gemini costs money and time:
 
@@ -4510,7 +4522,7 @@ The repository also contains a WVD simulator, so you can practise mapping and ru
 
 ## The Estimation Problem
 
-Automation estimation is notoriously inaccurate:
+Automation estimation is notoriously inaccurate. These are illustrative examples, not measured project data:
 
 - "This should take 2 hours" → 2 days 
 - "Simple login automation" → 3 weeks (with SSO, MFA, session handling) 
@@ -4522,7 +4534,7 @@ Automation estimation is notoriously inaccurate:
 
 ### Step 1: Decompose Ruthlessly
 
-**Rule**: If a task can't be broken into pieces under 4 hours, you don't understand it yet.
+**Rule of thumb**: If a task can't be broken into pieces under 4 hours, you don't understand it yet.
 
 ```
 BAD:  "Automate login flow" (1 vague task)
@@ -4540,7 +4552,11 @@ GOOD: "Automate login flow":
 TOTAL: 18h (not "4 hours")
 ```
 
+*The hour breakdown is an illustrative example, not measured data.*
+
 ### Step 2: Classify by Complexity
+
+*Rule of thumb figures, not measured data. Adjust them from your own past work.*
 
 | Complexity | Examples | Multiplier |
 | --- | --- | --- |
@@ -4549,6 +4565,8 @@ TOTAL: 18h (not "4 hours")
 | COMPLEX | Multi-step wizards, real-time updates, file handling | 4x |
 
 ### Step 3: Apply Base Estimates
+
+*Rule of thumb figures, not measured data. Adjust them from your own past work.*
 
 | Component | Simple | Medium | Complex |
 | --- | --- | --- | --- |
@@ -4559,6 +4577,8 @@ TOTAL: 18h (not "4 hours")
 | API Integration | 2h | 4h | 8h |
 
 ### Step 4: Add Multipliers
+
+*Rule of thumb figures, not measured data. Adjust them from your own past work.*
 
 ```
 Environment factors:
@@ -4574,6 +4594,8 @@ Team factors:
 ```
 
 ### Step 5: Buffer for Unknowns
+
+*Rule of thumb figures, not measured data. Adjust them from your own past work.*
 
 ```
 Confidence level → Buffer:
