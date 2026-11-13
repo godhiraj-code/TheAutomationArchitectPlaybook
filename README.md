@@ -60,7 +60,7 @@ search engines to the web edition with a canonical link).
 
 **Part X: Specialized environments**
 
-19. Windows Virtual Desktop
+19. Remote desktops and Visual Sonar (short note)
 
 **Part XI: Advanced topics**
 

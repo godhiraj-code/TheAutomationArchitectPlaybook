@@ -1926,23 +1926,16 @@ if __name__ == "__main__":
 
 **Put it to work** Separate login coverage from tests that only need an authenticated fixture.
 
-## The 40% Tax on Test Execution
+## A Worked Example of Login Time
 
-Authentication in enterprise applications typically involves:
+A UI login often includes loading the login page, entering credentials, submitting the form, any MFA or redirect steps, and waiting for the first authenticated page. Time this on your own application. The numbers below are a worked example, not a measured average from a published study.
 
-1. Loading the login page 
-2. Entering credentials 
-3. Submitting the form 
-4. Waiting for MFA/2FA (if applicable) 
-5. Handling redirects 
-6. Waiting for dashboard to load
+If each login takes 10 seconds, and 500 tests each start with a fresh login:
 
-**Average time: 8-15 seconds per login.**
+- 500 tests × 10 seconds = **83 minutes** spent only on authentication
+- That is 23% of a 6-hour test run
 
-For a test suite with 500 tests, each starting with a fresh login:
-
-- 500 tests × 10 seconds = **83 minutes** just on authentication 
-- That's 23% of a 6-hour test run spent logging in
+Measure the same ratio on your suite before you change how you authenticate.
 
 ### The Deeper Problem: Test Isolation Requirements
 
@@ -2473,7 +2466,7 @@ if __name__ == "__main__":
 
 | Concept | Key Takeaway |
 | --- | --- |
-| Auth Cost | Login can consume 20-40% of test execution time |
+| Auth Cost | In the worked example, login took 23% of a 6-hour run. Measure yours. |
 | Browser State | Auth stored in cookies, localStorage, sessionStorage |
 | Cookie Domains | A cookie can only be added while the browser is on a page of the cookie's domain |
 | Selenium Teleport | Capture and restore complete auth state |
@@ -4349,14 +4342,21 @@ def test_order_history(driver, api_client):
 
 **Put it to work** Compare local and CI inputs and verify artifact upload after a failing test.
 
-## GitHub Actions Best Practices
+## A Complete GitHub Actions Workflow
 
-### Matrix Testing
+Pytest does not have a built-in `--browser=` option. Pass the browser name in an environment variable and read it in a fixture.
+
+GitHub-hosted Ubuntu runners include Google Chrome, Firefox, and Microsoft Edge. The `ubuntu-latest` label can move to a new Ubuntu version, so print the browser version in the log and check the [hosted runner software list](https://github.com/actions/runner-images) when a failure appears only in CI. Current Selenium includes Selenium Manager, which can resolve a matching driver. You still need the browser itself on the runner.
+
+The workflow below uses `actions/checkout@v4`, `actions/setup-python@v5`, and `actions/upload-artifact@v4`, the same major versions used in the Waitless repository. It installs from `requirements.lock.txt`, which the setup guide already asks you to commit. `if: always()` uploads reports even when the tests fail. Create the report directories first, because pytest will not write a JUnit file into a missing folder.
 
 ```yaml
-name: Cross-Browser Tests
+name: Browser tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   test:
@@ -4364,46 +4364,80 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, firefox, edge]
-        python-version: ['3.10', '3.11', '3.12']
+        browser: [chrome, firefox]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock.txt
 
-      - name: Run tests on ${{ matrix.browser }}
-        run: pytest tests/ --browser=${{ matrix.browser }}
-```
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock.txt
 
-### Artifact Management
+      - name: Record browser versions
+        run: |
+          google-chrome --version
+          firefox --version
 
-```yaml
-- name: Upload test reports
+      - name: Run tests
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: |
+          mkdir -p reports screenshots
+          python -m pytest -q --junitxml=reports/junit.xml
+
+      - name: Upload reports and screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-${{ matrix.browser }}
+          name: test-results-${{ matrix.browser }}
           path: |
             reports/
             screenshots/
-          retention-days: 30
+          if-no-files-found: warn
+          retention-days: 14
 ```
 
-### Caching Dependencies
+## A Fixture That Reads the Browser Name
 
-```yaml
-- name: Cache pip packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+Save this as `conftest.py`. Tests use the `driver` fixture and do not mention the CI environment variable. Run Chrome in the new headless mode. When a test fails only in CI, compare the version printed above with the browser on your machine.
+
+```python
+import os
+import pytest
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+
+@pytest.fixture
+def driver():
+    name = os.environ.get("BROWSER", "chrome").lower()
+    if name == "chrome":
+        options = ChromeOptions()
+        options.add_argument("--headless=new")
+        options.add_argument("--window-size=1280,720")
+        drv = webdriver.Chrome(options=options)
+    elif name == "firefox":
+        options = FirefoxOptions()
+        options.add_argument("-headless")
+        drv = webdriver.Firefox(options=options)
+    else:
+        raise ValueError(f"Unsupported BROWSER: {name}")
+    print(f"BROWSER={name} capabilities={drv.capabilities.get('browserVersion')}")
+    try:
+        yield drv
+    finally:
+        drv.quit()
 ```
+
+Add more Python versions or Microsoft Edge to the matrix only after you have a passing Chrome job. Edge is present on current GitHub-hosted Ubuntu images, but confirm that on the software list before you depend on it. If you need a specific Chrome version, the Waitless workflow uses `browser-actions/setup-chrome@v1` to install one.
 
 ---
 
@@ -4411,11 +4445,13 @@ jobs:
 
 ---
 
-# Chapter 19: WVDAutomation - Windows Virtual Desktop
+# Chapter 19: Remote Desktops and Visual Sonar
 
 **What you’ll learn** Model remote-desktop constraints explicitly.
 
-**Put it to work** Test reconnect, resolution changes, and session cleanup before scaling execution.
+**Put it to work** Install the published package and follow the map and run flow from Chapter 14 on one controlled window.
+
+**This is a short note**, not a full Windows Virtual Desktop manual. There is no published `wvdautomation` package and no `WVDSession` API. The published tool is Visual Sonar, covered in Chapter 14.
 
 ## The WVD Challenge
 
