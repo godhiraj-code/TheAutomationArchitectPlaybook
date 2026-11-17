@@ -18,58 +18,45 @@ search engines to the web edition with a canonical link).
 1. How browsers actually work
 2. The anatomy of a flaky test
 3. Waitless: intelligent stability detection
-
-**Part II: Visual testing**
-
 4. Visual Guard: visual regression testing
 
-**Part III: Authentication optimization**
+**Part II: Access: login and bot detection**
 
 5. The hidden cost of authentication
 6. Selenium Teleport: browser state restoration
-
-**Part IV: Stealth and bot detection**
-
 7. Understanding modern bot detection
 8. SB Stealth Wrapper
 
-**Part V: Modern web architectures**
+**Part III: Modern web architectures**
 
 9. Understanding Shadow DOM
 10. Lumos ShadowDOM
 
-**Part VI: AI and intelligent automation**
+**Part IV: AI and intelligent automation**
 
-11. Selector Scout: AI generated locators (design sketch, not yet published)
+11. Selector Scout: AI-generated locators (preview, not yet published)
 12. Testing GenAI chatbots with Selenium
 13. pytest-mockllm: testing AI features without API costs
 
-**Part VII: Visual automation**
+**Part V: Proving what happened**
 
 14. Visual Sonar: automating remote desktops
 15. Project Vandal: UI mutation testing
-
-**Part VIII: Reporting**
-
 16. pytest-glow-report
 
-**Part IX: Enterprise patterns**
+**Part VI: Building and running a framework**
 
-17. The four layer architecture
+17. The four-layer architecture
 18. CI/CD integration patterns
+19. Effort estimation for automation projects
+20. SQL for automation testers
+21. Legacy lessons from UFT/QTP
 
-**Part X: Specialized environments**
+**Part VII: Testing AI systems and agents**
 
-19. Remote desktops and Visual Sonar (short note)
-
-**Part XI: Advanced topics**
-
-20. Effort estimation for automation projects
-21. SQL for automation testers
-22. Legacy lessons from UFT/QTP
-23. AI powered testing with privacy first local SLMs
-24. The Sentinel: toward autonomous quality agents
-25. Constellation based automation: the Milky Way strategy
+22. Testing AI systems in three layers
+23. The Sentinel: toward autonomous quality agents
+24. Constellation-based automation: the Milky Way strategy
 
 Appendix A lists every tool with its install name, source code and article.
 

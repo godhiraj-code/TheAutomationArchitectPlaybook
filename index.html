@@ -195,11 +195,12 @@
 <tr><td>Tests pass locally and fail in CI</td><td>Chapters 1–3, then 18</td><td>A failure classification and a reproducible waiting condition</td></tr>
 <tr><td>UI changes keep breaking the suite</td><td>Chapters 4, 9–11, and 15</td><td>Locator contracts and assertions that detect meaningful regressions</td></tr>
 <tr><td>Your framework is expensive to maintain</td><td>Chapters 5–6 and 17–20</td><td>A layering decision, isolated test data, and a measured execution budget</td></tr>
-<tr><td>You are adding AI or autonomous tools</td><td>Chapters 12–13 and 23–25</td><td>Separate integration tests, model evaluations, and agent execution checks</td></tr>
+<tr><td>You are adding AI or autonomous tools</td><td>Chapters 12–13 and 22–24</td><td>Separate integration tests, model evaluations, and agent execution checks</td></tr>
 </tbody></table>
 <h2 id="how-to-use-the-examples">How to use the examples</h2>
 <p>Each chapter starts with an outcome and a practical checkpoint. Code fragments explain a technique; they are not a complete application or a promise of compatibility with every package version. Supply your own fixtures, URLs, credentials, and teardown. Check the linked project documentation, pin the versions you validate, and run examples in a disposable test environment.</p>
-<p>The tools illustrate design decisions. Compare their behavior with the standard capabilities of your test framework before adding another dependency. Chapters 24–25 describe proposed architectures, with explicit limits and validation criteria.</p>
+<p>Numbers in examples, such as timings, percentages, costs and hours, show how to reason about a problem. Unless a chapter says it measured them, treat them as illustrative and measure your own suite before you rely on them.</p>
+<p>The tools illustrate design decisions. Compare their behavior with the standard capabilities of your test framework before adding another dependency. Chapters 23–24 describe proposed architectures, with explicit limits and validation criteria.</p>
 <h2 id="the-philosophy-behind-this-work">Three principles</h2>
 <ol><li><strong>Make outcomes observable.</strong> Define the assertion before choosing the wait or the tool.</li><li><strong>Keep failures explainable.</strong> Capture the first failure, inputs, versions, and relevant artifacts before retrying.</li><li><strong>Measure the tradeoff.</strong> Track runtime, false positives, maintenance effort, and missed regressions on your own suite.</li></ol>
 
@@ -280,6 +281,8 @@ def test_browser_smoke():
     <p>Before writing a single line of automation code, you need to understand what's actually happening inside the
         browser. This knowledge separates automation engineers who can debug any problem from those who copy-paste Stack
         Overflow answers and hope for the best.</p>
+    <p>This part covers how browsers work, why tests flake, how to wait for the right signals, and how to check what
+        users actually see on the screen.</p>
     <hr>
     <h1 id="chapter-1-how-browsers-actually-work">Chapter 1: How Browsers Actually Work</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Trace a user action through browser execution and rendering.</p><p><strong>Put it to work</strong> Replace one page-load assumption with an assertion about the resulting application state.</p></aside>
     <h2 id="why-this-chapter-matters">Why This Chapter Matters</h2>
@@ -585,7 +588,7 @@ driver.execute_script("""
 # Strategy 3: Use Waitless (covered in Chapter 3)
 from waitless import stabilize
 driver = stabilize(webdriver.Chrome())
-driver.get("https://example.com")  # Automatically waits for full stability
+driver.get("https://example.com")  # Waits for the page to settle before each action
 </code></pre>
     <hr>
     <h2 id="how-webdriver-selenium-talks-to-the-browser">How WebDriver (Selenium) Talks to the Browser</h2>
@@ -641,10 +644,7 @@ driver.execute_cdp_cmd("Network.enable", {})
 driver.execute_cdp_cmd("Network.setExtraHTTPHeaders", {
     "headers": {"X-Custom-Header": "my-value"}
 })
-
-# Listen to network events
-driver.execute_cdp_cmd("Network.enable", {})
-# Now you can capture all network requests/responses
+driver.get("https://example.com")  # This request now carries the extra header
 </code></pre>
     <h3 id="key-cdp-domains-for-testing">Key CDP Domains for Testing</h3>
     <table>
@@ -682,16 +682,14 @@ driver.execute_cdp_cmd("Network.enable", {})
         Command</h3>
     <p>Every Selenium command (e.g., <code>element.is_displayed()</code>) is an out-of-process network call. Even
         on localhost, there is overhead for serialization, network transmission, and deserialization. When you put a
-        <code>find_element</code> call inside a tight loop, you're not just waiting for the browser; you're paying a
-        rough illustration, a "tax" of about 5-10ms per call just for the communication protocol itself. This is why batching interactions in
-        JavaScript (using <code>execute_script</code>) is often much faster for complex tasks. A 10x difference is an illustration, not a measured benchmark.
+        <code>find_element</code> call inside a tight loop, you're not just waiting for the browser; you're also paying a
+        "tax" of about 5-10ms per call for the communication protocol itself. This is why batching interactions in
+        JavaScript (using <code>execute_script</code>) is often much faster for complex tasks.
     </p>
     <hr>
     <h2 id="hands-on-exercise-exploring-browser-internals">🔧 Hands-On Exercise: Exploring Browser Internals</h2>
     <p>Let's apply what we've learned:</p>
     <pre><code class="language-python">from selenium import webdriver
-from selenium.webdriver.common.by import By
-import time
 
 driver = webdriver.Chrome()
 
@@ -732,11 +730,12 @@ driver.quit()
 </code></pre>
     <p><strong>Expected Output:</strong></p>
     <pre><code>Page load complete. Title: Example Domain
-Total DOM size: 1234 characters
+Total DOM size: 1974 characters
 Document state: complete
 Running animations: 0
 Mutations observed: ['childList']
 </code></pre>
+    <p>The DOM size is what example.com returned when this was written. Your number will differ if the page changes.</p>
     <hr>
     <h2 id="chapter-1-summary">📋 Chapter 1 Summary</h2>
     <table>
@@ -773,15 +772,15 @@ Mutations observed: ['childList']
             </tr>
         </tbody>
     </table>
-    <p><strong>Coming up next:</strong> Now that you understand the platform, let's explore why tests fail
-        unpredictably—and how to analyze the root cause.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Browsers parse, lay out, paint and run JavaScript on one main thread, so a click can return before the page has
+        finished reacting. The <code>load</code> event does not mean your data is on screen.</p><p><strong>Try this</strong> Pick one test that waits for page load and change it to wait for the element or text that proves the action worked.</p><p><strong>Next</strong> Chapter 2 sorts flaky failures into five causes and shows how to find the one you have.</p></aside>
     <hr>
     <h1 id="chapter-2-the-anatomy-of-a-flaky-test">Chapter 2: The Anatomy of a Flaky Test</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Classify intermittent failures before changing timeouts.</p><p><strong>Put it to work</strong> Keep the first failure trace and reproduce one race with controlled latency.</p></aside>
     <h2 id="understanding-why-tests-fail-intermittently">Understanding Why Tests Fail Intermittently</h2>
     <p>Flaky tests are the silent killers of automation credibility. A test that passes on Monday, fails on Tuesday, and
         passes again on Wednesday—with zero code changes—destroys trust faster than any bug in production.</p>
     <h3 id="the-true-cost-of-flakiness">The True Cost of Flakiness</h3>
-    <p>The figures below are illustrative example numbers, not measured data:</p>
+    <p>Here is an example of what flakiness can cost a team:</p>
     <table>
         <thead>
             <tr>
@@ -1059,7 +1058,6 @@ driver.find_element(By.ID, "submit-btn").click()
         <li><strong>Still flaky</strong>: Sometimes 5 seconds isn't enough</li>
         <li><strong>Compounds</strong>: 100 tests × 3 sleeps each × 5 seconds = <strong>25 minutes wasted</strong></li>
     </ul>
-    <p><em>The 25 minutes figure is a worked example (100 tests, 3 sleeps, 5 seconds each), not measured data.</em></p>
     <h3 id="solution-2-explicit-waits-better-but-incomplete">Solution 2: Explicit Waits - Better But Incomplete</h3>
     <pre><code class="language-python">from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -1192,7 +1190,7 @@ def get_pending_requests(driver):
 </code></pre>
     <hr>
     <h2 id="chapter-2-summary">📋 Chapter 2 Summary</h2>
-    <p><em>Illustrative example numbers, not measured data.</em></p>
+    <p>The percentages show one example suite, not a survey.</p>
     <table>
         <thead>
             <tr>
@@ -1229,9 +1227,9 @@ def get_pending_requests(driver):
             </tr>
         </tbody>
     </table>
-    <p><strong>The Ultimate Solution:</strong> In the next chapter, we'll introduce <strong>Waitless</strong>, which
-        addresses race conditions, network variability, AND animation interference automatically—with no code changes
-        required.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Most flaky failures come from a few causes: races, slow networks, animations, outside services and busy machines.
+        Sleeps hide them; diagnosis finds them.</p><p><strong>Try this</strong> Run your flakiest test 50 times with the tracker plugin from this chapter and note which category its failures fall into.</p><p><strong>Next</strong> Chapter 3 introduces Waitless, which waits for the DOM and the network to settle before each action, with a
+        one-line change to how you create the driver.</p></aside>
     <hr>
     <h1 id="chapter-3-waitless-intelligent-stability-detection">Chapter 3: Waitless - Intelligent Stability Detection
     </h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Evaluate stability signals without treating quietness as success.</p><p><strong>Put it to work</strong> Compare a bounded readiness check with an explicit outcome assertion on a polling page.</p></aside>
@@ -1493,7 +1491,7 @@ finally:
     <p style="text-align: center; margin: 2rem 0;">
         <img src="assets/images/stability.png" alt="Test Stability Visualization" style="max-width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
     </p>
-    <h2 id="real-world-impact">Illustrative impact: what to measure</h2><p>Use the following figures as illustrative examples, not independently verified benchmarks. Record your baseline, workload, versions, and repeat runs before attributing a gain to a tool.</p>
+    <h2 id="real-world-impact">Example: what to measure</h2><p>Here is the kind of before and after comparison to make. Record your own baseline, workload, versions, and repeat runs before you credit a gain to any tool.</p>
     <p><strong>Before Waitless:</strong></p>
     <pre><code>Test Suite: checkout_flow (5 tests)
 ├── test_add_to_cart        PASSED
@@ -1517,7 +1515,6 @@ Re-runs required: 3-4 per CI pipeline
 └── test_payment            PASSED
 
 Run 1-100: 100% pass rate
-Flaky failures eliminated: 100%
 Re-runs required: 0
 </code></pre>
     <hr>
@@ -1607,8 +1604,8 @@ finally:
                 <td>Prevents mid-animation clicks</td>
             </tr>
             <tr>
-                <td>Zero code changes</td>
-                <td>Works with existing tests</td>
+                <td>One-line setup</td>
+                <td>Wrap the driver once; the rest of your test code stays the same</td>
             </tr>
             <tr>
                 <td>Configurable thresholds</td>
@@ -1617,16 +1614,12 @@ finally:
         </tbody>
     </table>
     <p><strong>Key Takeaway:</strong> Waitless shifts the waiting logic from your tests to the browser itself. Instead
-        of guessing when to wait, it observes actual browser activity and proceeds only when truly stable.</p>
-    <p><strong>Coming up next:</strong> Now that we've eliminated flakiness in functional tests, let's tackle visual
-        testing—because a button working isn't the same as a button looking right.</p>
+        of guessing when to wait, it observes actual browser activity and proceeds when the signals you chose are quiet.
+        Keep your assertions: a quiet page is not proof of a correct page.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Waitless watches DOM changes, network requests and, in strict mode, animations and layout, and waits before each
+        action until they settle. A quiet page is still not proof of a correct page, so keep your assertions.</p><p><strong>Try this</strong> Wrap the driver in one flaky suite with <code>stabilize()</code>, run it 20 times before and after, and compare failures and run time.</p><p><strong>Next</strong> Chapter 4 moves from "does it work" to "does it look right" with visual regression testing.</p></aside>
     <hr>
-    <h1 id="part-ii-visual-testing">PART II: VISUAL TESTING</h1>
-    <h2 id="catching-what-functional-tests-miss">Catching What Functional Tests Miss</h2>
-    <blockquote>
-        <p><em>"A user doesn't interact with the DOM—they interact with pixels. Test accordingly."</em></p>
-    </blockquote>
-    <hr>
+
     <h1 id="chapter-4-visual-guard-comprehensive-visual-regression-testing">Chapter 4: Visual Guard - Comprehensive
         Visual Regression Testing</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Choose visual comparisons that detect meaningful changes.</p><p><strong>Put it to work</strong> Introduce one real layout regression and one expected dynamic value; inspect both results.</p></aside>
     <h2 id="why-visual-testing-matters">Why Visual Testing Matters</h2>
@@ -1676,7 +1669,6 @@ finally:
             </tr>
         </tbody>
     </table>
-    <p><em>Illustrative example numbers, not measured data.</em></p>
     <hr>
     <h2 id="the-limitation-of-pixel-perfect-comparison">The Limitation of Pixel-Perfect Comparison</h2>
     <p>Traditional visual testing compares screenshots pixel-by-pixel:</p>
@@ -1899,7 +1891,7 @@ for width, height in viewports:
 </code></pre>
     <p>For other browsers, repeat the loop with <code>webdriver.Firefox()</code> or <code>webdriver.Edge()</code> and put the browser name in the baseline name. Never compare a Firefox screenshot against a Chrome baseline.</p>
     <h3 id="full-page-screenshots">Full-Page Screenshots</h3>
-    <p>For pages with scroll, give Visual Guard a full page image. One simple way in Chrome is to make the window as tall as the page:</p>
+    <p>For pages with scroll, give Visual Guard a full-page image. One simple way in Chrome is to make the window as tall as the page:</p>
     <pre><code class="language-python">from selenium import webdriver
 from visual_guard import VisualTester
 
@@ -1915,7 +1907,7 @@ driver.set_window_size(1280, height)
 passed = tester.assert_matches(driver, "long_page", method="phash", threshold=8)
 driver.quit()
 </code></pre>
-    <p>Firefox can also return a full page image directly with <code>driver.get_full_page_screenshot_as_png()</code>, which you can pass to <code>assert_matches</code> as PNG bytes.</p>
+    <p>Firefox can also return a full-page image directly with <code>driver.get_full_page_screenshot_as_png()</code>, which you can pass to <code>assert_matches</code> as PNG bytes.</p>
     <hr>
     <h2 id="html-report-generation">HTML Report Generation</h2>
     <pre><code class="language-python">import os
@@ -2050,16 +2042,20 @@ if __name__ == "__main__":
             </tr>
         </tbody>
     </table>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Pixel diffs fail on noise. SSIM and pHash compare structure and tolerate small rendering changes, and masks keep
+        dynamic content out of the comparison.</p><p><strong>Try this</strong> Load one page twice with zero tolerance, mask what changed, then make one real CSS change and confirm the test catches it.</p><p><strong>Next</strong> Part II starts with Chapter 5: how much of your suite time goes into logging in.</p></aside>
     <hr>
-    <h1 id="part-iii-authentication-optimization">PART III: AUTHENTICATION OPTIMIZATION</h1>
-    <h2 id="the-fastest-login-is-no-login-at-all">The Fastest Login Is No Login At All</h2>
+    <h1 id="part-ii-access-login-and-bot-detection">PART II: ACCESS: LOGIN AND BOT DETECTION</h1>
+    <h2 id="getting-in-before-you-can-test">Getting In Before You Can Test</h2>
     <blockquote>
         <p><em>"Every second spent logging in is a second not spent testing."</em></p>
     </blockquote>
+    <p>Before a test can check anything, it has to get into the app. This part covers the cost of logging in, how to
+        restore a logged-in state, and how bot detection sees automated browsers.</p>
     <hr>
     <h1 id="chapter-5-the-hidden-cost-of-authentication">Chapter 5: The Hidden Cost of Authentication</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Measure how authentication affects suite time and isolation.</p><p><strong>Put it to work</strong> Separate login coverage from tests that only need an authenticated fixture.</p></aside>
     <h2 id="a-worked-example-of-login-time">A Worked Example of Login Time</h2>
-    <p>A UI login often includes loading the login page, entering credentials, submitting the form, any MFA or redirect steps, and waiting for the first authenticated page. Time this on your own application. The numbers below are a worked example, not a measured average from a published study.</p>
+    <p>A UI login often includes loading the login page, entering credentials, submitting the form, any MFA or redirect steps, and waiting for the first authenticated page. Time this on your own application.</p>
     <p>If each login takes 10 seconds, and 500 tests each start with a fresh login:</p>
     <ul>
         <li>500 tests × 10 seconds = <strong>83 minutes</strong> spent only on authentication</li>
@@ -2201,6 +2197,8 @@ def authenticated_driver():
         <li>LocalStorage/SessionStorage not populated</li>
         <li>Application-specific initialization not triggered</li>
     </ul>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Logging in through the UI in every test can take a large share of a run, and sharing one session between tests
+        breaks isolation.</p><p><strong>Try this</strong> Time the login step in your suite and work out what share of the total run it takes.</p><p><strong>Next</strong> Chapter 6 shows how to save a logged-in state once and restore it in each test.</p></aside>
     <hr>
     <h1 id="chapter-6-selenium-teleport-complete-browser-state-restoration">Chapter 6: Selenium Teleport - Complete
         Browser State Restoration</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Restore state without mixing identities or expired sessions.</p><p><strong>Put it to work</strong> Check expiry and account identity after restoration, then test the logged-out path.</p></aside>
@@ -2273,7 +2271,7 @@ print(f"✓ Captured {len(state['sessionStorage'])} sessionStorage items")
 
 driver.quit()
 </code></pre>
-    <p>If the login needs a person (for example a one time code), open the login page, log in by hand, then call <code>save_state()</code>.</p>
+    <p>If the login needs a person (for example a one-time code), open the login page, log in by hand, then call <code>save_state()</code>.</p>
     <h3 id="state-restoration-in-tests">State Restoration in Tests</h3>
     <pre><code class="language-python">import pytest
 from selenium import webdriver
@@ -2358,7 +2356,7 @@ driver.quit()
         <li>Drops cookies that have already expired</li>
         <li>Opens the base URL of that site, so the browser is on the right domain</li>
         <li>Adds the cookies, then fills localStorage and sessionStorage</li>
-        <li>Navigates to the destination URL, which now loads as a logged in user</li>
+        <li>Navigates to the destination URL, which now loads as a logged-in user</li>
     </ol>
     <hr>
     <h2 id="multi-user-state-management">Multi-User State Management</h2>
@@ -2445,7 +2443,7 @@ jobs:
 </code></pre>
     <hr>
     <h2 id="performance-impact">Performance Impact</h2>
-    <p><em>Illustrative worked example, not measured data. The 10 second login matches the example in Chapter 5.</em></p>
+    <p>The 10-second login matches the example in Chapter 5.</p>
     <table>
         <thead>
             <tr>
@@ -2472,8 +2470,8 @@ jobs:
             </tr>
         </tbody>
     </table>
-    <p><strong>Total time saved per CI run: 75+ minutes</strong></p>
-    <p>For a team running CI 10 times/day: <strong>750 minutes (12.5 hours) saved daily</strong></p>
+    <p>In this example, restoring a saved state instead of logging in saves more than an hour on every run of 500
+        tests. Time your own login before you count on a number like this.</p>
     <hr>
     <h2 id="common-pitfalls_1">⚠️ Common Pitfalls</h2>
     <h3 id="pitfall-1-httponly-cookies">Pitfall 1: HttpOnly Cookies</h3>
@@ -2602,17 +2600,14 @@ if __name__ == "__main__":
             </tr>
         </tbody>
     </table>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Selenium Teleport saves cookies, localStorage and sessionStorage after one real login and restores them in new
+        sessions. It checks the site first and drops expired cookies.</p><p><strong>Try this</strong> Save a state for one role, restore it in a test, check the logged-in user name, then test what happens when the state has expired.</p><p><strong>Next</strong> Chapter 7 explains how bot detection tells automated browsers apart.</p></aside>
     <hr>
-    <h1 id="part-iv-stealth-bot-evasion">PART IV: STEALTH &amp; BOT EVASION</h1>
+
+    <h1 id="chapter-7-understanding-modern-bot-detection">Chapter 7: Understanding Modern Bot Detection</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Understand why automated and interactive browser sessions differ.</p><p><strong>Put it to work</strong> Compare signals in an authorized test environment and document the supported access path.</p></aside>
     <p style="text-align: center; margin: 2rem 0;">
         <img src="assets/images/stealth.png" alt="Stealth Automation Techniques" style="max-width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
     </p>
-    <h2 id="testing-behind-modern-security">Testing Behind Modern Security</h2>
-    <blockquote>
-        <p><em>"When the website thinks you're a bot, you can't test anything."</em></p>
-    </blockquote>
-    <hr>
-    <h1 id="chapter-7-understanding-modern-bot-detection">Chapter 7: Understanding Modern Bot Detection</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Understand why automated and interactive browser sessions differ.</p><p><strong>Put it to work</strong> Compare signals in an authorized test environment and document the supported access path.</p></aside>
     <h2 id="why-your-tests-get-blocked">Why Your Tests Get Blocked</h2>
     <p>Modern bot detection has evolved far beyond simple CAPTCHAs. Services like Cloudflare, PerimeterX, DataDome, and
         Akamai use sophisticated fingerprinting that can detect standard Selenium in milliseconds.</p>
@@ -2740,7 +2735,6 @@ document.addEventListener('keydown', e =&gt; {
 // Bot: Perfect consistent timing, or all keys instant
 </code></pre>
     <h3 id="click-behavior">Click Behavior</h3>
-    <p><em>Illustrative example numbers, not measured data.</em></p>
     <table>
         <thead>
             <tr>
@@ -2772,6 +2766,8 @@ document.addEventListener('keydown', e =&gt; {
             </tr>
         </tbody>
     </table>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Detection services combine many signals: <code>navigator.webdriver</code>, WebGL and canvas fingerprints, plugins,
+        and how the mouse and keyboard behave. Standard Selenium shows several of them.</p><p><strong>Try this</strong> On a test environment you are allowed to use, open a fingerprint test page with plain Selenium and save a screenshot as your baseline.</p><p><strong>Next</strong> Chapter 8 shows SB Stealth Wrapper, a small wrapper around SeleniumBase UC mode, and its limits.</p></aside>
     <hr>
     <h1 id="chapter-8-sb-stealth-wrapper-becoming-invisible">Chapter 8: SB Stealth Wrapper - Becoming Invisible</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Evaluate browser compatibility techniques and their limits.</p><p><strong>Put it to work</strong> Record the browser and tool versions and retain a standard WebDriver baseline.</p></aside>
     <h2 id="architecture-of-stealth">🔍 Deep Dive: The Stealth Architecture</h2>
@@ -2833,7 +2829,7 @@ with StealthBot(headless=False, success_criteria="Sign in") as bot:
 </code></pre>
     <hr>
     <h2 id="configuration-options_1">Configuration Options</h2>
-    <p><code>StealthBot</code> keeps its options small. The fingerprint, typing and mouse settings in older drafts of this chapter are not part of the library; for anything more, use the SeleniumBase API through <code>bot.sb</code> or pass your own strategy objects (<code>driver_strategy</code>, <code>input_strategy</code>, <code>evasion_strategy</code>).</p>
+    <p><code>StealthBot</code> keeps its options small. It does not expose fingerprint, typing or mouse settings; for anything more, use the SeleniumBase API through <code>bot.sb</code> or pass your own strategy objects (<code>driver_strategy</code>, <code>input_strategy</code>, <code>evasion_strategy</code>).</p>
     <pre><code class="language-python">from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError
 
 bot = StealthBot(
@@ -2954,8 +2950,11 @@ with StealthBot() as bot:
         <li>❌ Bypassing rate limits on third-party services</li>
         <li>❌ Any malicious purposes</li>
     </ul>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> SB Stealth Wrapper runs SeleniumBase UC mode, handles challenge pages in <code>safe_get()</code> and
+        <code>smart_click()</code>, and uses <code>success_criteria</code> to prove it reached the real page. Use it only on
+        sites you own or have permission to test.</p><p><strong>Try this</strong> Run the debugging script from this chapter with plain Selenium and with StealthBot, and record the browser and library versions next to both screenshots.</p><p><strong>Next</strong> Part III starts with Chapter 9: Shadow DOM, and why normal locators cannot see inside it.</p></aside>
     <hr>
-    <h1 id="part-v-modern-web-architectures">PART V: MODERN WEB ARCHITECTURES</h1>
+    <h1 id="part-iii-modern-web-architectures">PART III: MODERN WEB ARCHITECTURES</h1>
     <h2 id="conquering-shadow-dom-and-web-components">Conquering Shadow DOM and Web Components</h2>
     <blockquote>
         <p><em>"The shadow boundary is a wall—but every wall has a door."</em></p>
@@ -3124,9 +3123,11 @@ const app = document.querySelector("my-app");
 const panel = app.shadowRoot.querySelector("settings-panel");
 const button = panel.shadowRoot.querySelector("button#save");  // Found!
 </code></pre>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> A shadow root is a separate DOM tree. Queries from the document stop at its border, and Selenium 4 can open open
+        roots one level at a time with <code>shadow_root</code>.</p><p><strong>Try this</strong> In DevTools, find one component in your app and write down its host, its shadow root and the target element before you write a locator.</p><p><strong>Next</strong> Chapter 10 shows Lumos, which walks nested shadow roots with one path.</p></aside>
     <hr>
     <h1 id="chapter-10-lumos-shadowdom-illuminating-the-darkness">Chapter 10: Lumos ShadowDOM - Illuminating the
-        Darkness</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Evaluate traversal helpers against native shadow-root APIs.</p><p><strong>Put it to work</strong> Test nested components and an intentionally unavailable target with bounded failure.</p></aside>
+        Darkness</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Evaluate traversal helpers against native shadow-root APIs.</p><p><strong>Put it to work</strong> Compare Lumos with the native <code>shadow_root</code> API on nested components, and check that a missing target fails within the timeout.</p></aside>
     <h2 id="how-lumos-works">How Lumos Works</h2>
     <p><strong>Lumos ShadowDOM</strong> extends Selenium WebDriver with shadow-aware methods. Each call runs a small
         JavaScript function that walks the open shadow roots for you, and waits until the element appears.</p>
@@ -3291,15 +3292,80 @@ submit = form.find_element(By.CSS_SELECTOR, "button[type='submit']")
 submit.click()
 driver.quit()
 </code></pre>
+    <h2 id="hands-on-exercise-native-api-vs-lumos">🔧 Hands-On Exercise: Native API vs Lumos</h2>
+    <p>Selenium 4 can already open shadow roots, so check what Lumos adds before you depend on it. This test builds a
+        page with two nested open shadow roots, finds the same button both ways, and then asks for a button that does not
+        exist. It needs no external site. Save it as <code>test_shadow.py</code> and run <code>python -m pytest -q</code>:</p>
+    <pre><code class="language-python">import time
+from urllib.parse import quote
+
+import lumos  # adds find_shadow to WebDriver
+import pytest
+from lumos import ElementNotFoundError
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+
+PAGE = """
+&lt;my-app&gt;&lt;/my-app&gt;
+&lt;script&gt;
+customElements.define("settings-panel", class extends HTMLElement {
+  connectedCallback() {
+    this.attachShadow({mode: "open"}).innerHTML = '&lt;button id="save"&gt;Save&lt;/button&gt;';
+  }
+});
+customElements.define("my-app", class extends HTMLElement {
+  connectedCallback() {
+    this.attachShadow({mode: "open"}).innerHTML = "&lt;settings-panel&gt;&lt;/settings-panel&gt;";
+  }
+});
+&lt;/script&gt;
+"""
+
+
+@pytest.fixture
+def driver():
+    drv = webdriver.Chrome()
+    drv.get("data:text/html;charset=utf-8," + quote(PAGE))
+    yield drv
+    drv.quit()
+
+
+def test_native_api_and_lumos_find_the_same_button(driver):
+    # Native Selenium 4: open one shadow root at a time
+    app = driver.find_element(By.CSS_SELECTOR, "my-app")
+    panel = app.shadow_root.find_element(By.CSS_SELECTOR, "settings-panel")
+    native = panel.shadow_root.find_element(By.CSS_SELECTOR, "button#save")
+
+    # Lumos: one path, with a wait built in
+    helper = driver.find_shadow("my-app &gt; settings-panel &gt; button#save")
+
+    assert native == helper
+    assert helper.text == "Save"
+
+
+def test_missing_target_fails_within_the_timeout(driver):
+    start = time.monotonic()
+    with pytest.raises(ElementNotFoundError):
+        driver.find_shadow("my-app &gt; settings-panel &gt; button#delete", timeout=2)
+    assert time.monotonic() - start &lt; 5
+</code></pre>
+    <p>Both tests pass. The native version needs one <code>find_element</code> call per shadow root and has no
+        wait of its own. The Lumos version is one path with a wait built in. The second test checks the other half of
+        the deal: a missing element raises <code>ElementNotFoundError</code> after the timeout you set, instead of
+        hanging. Point the same two tests at one nested component in your own app.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Lumos turns a chain of shadow roots into one path such as <code>my-app &gt; settings-panel &gt; button#save</code>,
+        waits for it, and raises <code>ElementNotFoundError</code> when the timeout ends. Closed roots stay out of reach.</p><p><strong>Try this</strong> Run the native API vs Lumos exercise against one nested component in your own app.</p><p><strong>Next</strong> Part IV starts with Chapter 11, a preview of Selector Scout and the rules for good locators.</p></aside>
     <hr>
     
-<h1 id="part-vi-ai-intelligent-automation">PART VI: AI &amp; INTELLIGENT AUTOMATION</h1>
+<h1 id="part-iv-ai-intelligent-automation">PART IV: AI &amp; INTELLIGENT AUTOMATION</h1>
     <h2 id="leveraging-ai-for-smarter-testing">Leveraging AI for Smarter Testing</h2>
+    <p>Using AI to suggest locators, testing chatbots that stream their answers, and testing LLM features without
+        paying for, or waiting on, a live model.</p>
     <hr>
-    <h1 id="chapter-11-selector-scout-ai-generated-resilient-locators">Chapter 11: Selector Scout - AI-Generated
-        Resilient Locators</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Review generated locators as maintainable test contracts.</p><p><strong>Put it to work</strong> Reject ambiguous matches and document the business identity of the intended element.</p></aside>
-    <p><strong>Status:</strong> Selector Scout is not yet published on PyPI or GitHub. The code in this chapter is a
-        design sketch of the planned API and will not run today. The locator principles apply to any tool.</p>
+    <h1 id="chapter-11-selector-scout-ai-generated-resilient-locators">Chapter 11: Selector Scout (Preview) - AI-Generated Resilient Locators</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Review generated locators as maintainable test contracts.</p><p><strong>Put it to work</strong> Reject ambiguous matches and document the business identity of the intended element.</p></aside>
+    <p><strong>Preview of an unpublished tool.</strong> Selector Scout is not on PyPI or GitHub yet. The code in this
+        chapter shows the planned API and will not run today. The locator principles work with any tool, and Chapter 22
+        shows how to check a suggested locator before you trust it.</p>
     <h2 id="the-selector-maintenance-problem">The Selector Maintenance Problem</h2>
     <p>Selectors break constantly:</p>
     <ul>
@@ -3409,6 +3475,8 @@ class LoginPage:
     def click_forgot_password(self):
         self.driver.find_element(*self.FORGOT_PASSWORD_LINK).click()
 </code></pre>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Good locators point to what an element means, such as a test id, a role or a label, not to where it sits. A
+        generated locator is a suggestion that a person reviews.</p><p><strong>Try this</strong> Pick five locators in your suite, place them on the brittle selector spectrum from this chapter, and replace the worst one.</p><p><strong>Next</strong> Chapter 12 tests chatbots that stream their answers.</p></aside>
     <hr>
     <h1 id="chapter-12-testing-genai-chatbots-with-selenium">Chapter 12: Testing GenAI Chatbots with Selenium</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Separate streaming behavior from answer quality.</p><p><strong>Put it to work</strong> Test cancellation, partial output, completion, and a failed stream independently.</p></aside>
     <h2 id="the-unique-challenges-of-ai-interfaces">The Unique Challenges of AI Interfaces</h2>
@@ -3522,12 +3590,13 @@ assert metrics.ttft_ms &lt; 2000, "First token too slow"
 assert metrics.total_ms &lt; 10000, "Streaming too slow"
 driver.quit()
 </code></pre>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Streaming answers need a "text has stopped changing" wait, varied answers need meaning-based checks, and latency
+        needs its own numbers. StreamWaiter, SemanticAssert and LatencyMonitor cover each one.</p><p><strong>Try this</strong> Write separate tests for a completed stream, a canceled stream, partial output and a failed request, so each failure tells you which part broke.</p><p><strong>Next</strong> Chapter 13 removes the live model from your integration tests with pytest-mockllm.</p></aside>
     <hr>
     
 <h1 id="chapter-13-pytest-mockllm-testing-ai-features-without-api-costs">Chapter 13: Pytest-MockLLM - Testing AI
         Features Without API Costs</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Use deterministic LLM fixtures to test integration behavior.</p><p><strong>Put it to work</strong> Include a malformed response and a timeout, then keep a separate live-model evaluation.</p></aside>
     <h2 id="the-problem-with-testing-llm-powered-features">The Problem with Testing LLM-Powered Features</h2>
-    <p><em>Illustrative example numbers, not measured data.</em></p>
     <p>Every call to OpenAI/Claude/Gemini costs money and time:</p>
     <ul>
         <li>API calls: $0.01-$0.10 per request</li>
@@ -3644,7 +3713,7 @@ def test_handles_rate_limit(mock_openai):
         without real personal details, and review cassettes before you commit them.</p>
     <hr>
     
-<h2 id="parts-iv-vi-summary">📋 Parts IV-VI Summary</h2>
+<h2 id="parts-iv-vi-summary">📋 Summary of Chapters 7 to 13</h2>
     <table>
         <thead>
             <tr>
@@ -3681,12 +3750,16 @@ def test_handles_rate_limit(mock_openai):
             </tr>
         </tbody>
     </table>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> pytest-mockllm replaces provider calls with fixed answers, records and replays real calls, and injects errors
+        such as rate limits and timeouts. That tests your code, not the model.</p><p><strong>Try this</strong> Add one test where the mock returns malformed output and one where it raises a timeout, and check that your app fails clearly in both.</p><p><strong>Next</strong> Part V starts with Chapter 14, which leaves the browser for remote desktops, where there is no DOM at all.</p></aside>
     <hr>
-    <h1 id="part-vii-visual-automation">PART VII: VISUAL AUTOMATION</h1>
-    <h2 id="when-theres-no-dom-at-all">When There's No DOM At All</h2>
+    <h1 id="part-v-proving-what-happened">PART V: PROVING WHAT HAPPENED</h1>
+    <h2 id="remote-desktops-mutation-testing-and-reports">Remote Desktops, Mutation Testing and Reports</h2>
     <blockquote>
         <p><em>"In a remote desktop, all you have are pixels—and your wits."</em></p>
     </blockquote>
+    <p>Some screens have no DOM, some tests check less than they claim, and some results never reach the people who
+        need them. This part covers all three.</p>
     <hr>
     <p style="text-align: center; margin: 2rem 0;">
         <img src="assets/images/visual.png" alt="Visual Testing Workflow" style="max-width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
@@ -3864,6 +3937,16 @@ def get_focus_region(img_before, img_after):
         in <code>wvd_map.json</code>. On each run it reads the current scale and multiplies the saved coordinates by
         the ratio. If the resolution differs by more than 5 percent, it warns you and asks before continuing;
         remapping is the safe fix.</p>
+    <h3 id="azure-virtual-desktop">Azure Virtual Desktop (Windows Virtual Desktop)</h3>
+    <p>Azure Virtual Desktop, which Microsoft used to call Windows Virtual Desktop (WVD), works the same way: inside
+        the session your app is only pixels, so DOM-based tools cannot see it. Visual Sonar does not sign in to the
+        workspace or open the session for you. Start the session by hand, bring the remote window to the front, then map
+        and run your form as shown above.</p>
+    <p>The <a href="https://github.com/godhiraj-code/wvdautomation">wvdautomation</a> repository, the home of Visual
+        Sonar, also contains a WVD simulator (<code>wvd_simulator.py</code>), so you can practice mapping and running
+        flows before you point them at a real remote desktop.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> In Citrix and Azure Virtual Desktop sessions you only get pixels. Visual Sonar maps a form by pressing TAB and
+        watching the focus move, replays it with your data, and checks text with OCR.</p><p><strong>Try this</strong> Map one form in the WVD simulator, then run it again at a second screen scale and note what changes.</p><p><strong>Next</strong> Chapter 15 asks whether your tests would notice if the UI broke.</p></aside>
     <hr>
     
 <h1 id="chapter-15-project-vandal-ui-mutation-testing">Chapter 15: Project Vandal - UI Mutation Testing</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Check that an assertion detects the defect it claims to cover.</p><p><strong>Put it to work</strong> Mutate a relevant UI behavior and verify that the intended assertion fails.</p></aside>
@@ -3961,7 +4044,7 @@ element.innerText = 'VANDALIZED_TEXT';  // everything else
 </code></pre>
     <h3 id="4-logic-sabotage">4. Logic Sabotage</h3>
     <p>Breaks click handling while the element still looks and accepts clicks normally:</p>
-    <pre><code class="language-javascript">// "logic_sabotage": a capture phase listener runs before the app's handlers
+    <pre><code class="language-javascript">// "logic_sabotage": a capture-phase listener runs before the app's handlers
 element.addEventListener('click', (e) =&gt; {
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -4018,13 +4101,12 @@ for m in results:
         print(f"⚠️ ZOMBIE: test didn't detect {m.type} on {m.selector}")
 </code></pre>
     <p>Running the same loop with <code>login_test</code> from the basic example (which asserts on the outcome) scores 100%.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Vandal breaks the UI on purpose, with disabled clicks, hidden elements and wrong text, and checks whether your
+        test fails. A test that survives a mutant is a zombie.</p><p><strong>Try this</strong> Run the mutation score loop on one of your most important tests and fix any mutant it misses.</p><p><strong>Next</strong> Chapter 16 makes test results readable for the whole team.</p></aside>
     <hr>
-    
-<h1 id="part-viii-reporting-observability">PART VIII: REPORTING &amp; OBSERVABILITY</h1>
-    <h2 id="making-quality-visible">Making Quality Visible</h2>
-    <hr>
+
     <h1 id="chapter-16-pytest-glow-report-enterprise-grade-reporting">Chapter 16: pytest-glow-report - Enterprise-Grade
-        Reporting</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Turn test results into actionable evidence.</p><p><strong>Put it to work</strong> Ensure a report links failures to artifacts, versions, and the first attempt.</p></aside>
+        Reporting</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Turn test results into actionable evidence.</p><p><strong>Put it to work</strong> Fail one test on purpose and check that the report shows its traceback, a screenshot, and the build and browser labels.</p></aside>
     <h2 id="beyond-developer-output">Beyond Developer Output</h2>
     <p>Standard pytest output serves developers:</p>
     <pre><code>test_login.py::test_valid_login PASSED
@@ -4084,7 +4166,7 @@ print(f"Pass rate: {pass_rate:.1f}%")
 if pass_rate &lt; 95:
     raise SystemExit("Release blocked: pass rate below 95%")
 </code></pre>
-    <h3 id="3-screenshot-integration">3. Steps, Logs and Screenshots</h3>
+    <h3 id="3-screenshot-integration">2. Steps, Logs and Screenshots</h3>
     <pre><code class="language-python">import pytest
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -4116,13 +4198,64 @@ def test_login_shows_dashboard(driver):
 </code></pre>
     <p>Steps, logs and screenshots are attached to the test that was running. Screenshots are embedded in both
         <code>report.html</code> and <code>report.json</code>, so keep them few and small.</p>
-    <h3 id="4-failure-clustering">4. unittest Support</h3>
+    <h3 id="4-failure-clustering">3. unittest Support</h3>
     <p>Suites that use Python's built-in unittest runner get the same report through the CLI:
         <code>glow-report run -- unittest discover -s tests</code>.</p>
+    <h2 id="hands-on-exercise-check-the-evidence">🔧 Hands-On Exercise: Check the Evidence</h2>
+    <p>A report is only useful if a failure carries enough evidence to act on. This test fails on purpose. It logs the
+        browser version and takes a screenshot before the assertion:</p>
+    <pre><code class="language-python">from urllib.parse import quote
+
+import pytest
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from beautiful_report import report
+
+
+@pytest.fixture
+def driver():
+    drv = webdriver.Chrome()
+    yield drv
+    drv.quit()
+
+
+def test_banner_text(driver):
+    driver.get("data:text/html;charset=utf-8," + quote("&lt;p id='msg'&gt;Error&lt;/p&gt;"))
+    report.log(f"Browser version: {driver.capabilities['browserVersion']}")
+    report.screenshot("before assertion", driver=driver)
+
+    # Fails on purpose, so you can inspect the evidence
+    assert driver.find_element(By.ID, "msg").text == "Success"
+</code></pre>
+    <p>Run it with build and browser labels:</p>
+    <pre><code class="language-bash">GLOW_BUILD="v2.1.0" GLOW_BROWSER="chrome" pytest test_evidence.py
+</code></pre>
+    <p>Then check the JSON report instead of trusting your eyes:</p>
+    <pre><code class="language-python">import json
+
+with open("reports/report.json") as f:
+    data = json.load(f)
+
+print("Labels:", data["environment"])
+for test in data["tests"]:
+    if test["outcome"] != "failed":
+        continue
+    assert test["longrepr"], f"{test['nodeid']}: no traceback"
+    assert test["screenshots"], f"{test['nodeid']}: no screenshot"
+    print(f"{test['nodeid']}: traceback, {len(test['screenshots'])} screenshot(s), logs {test['logs']}")
+</code></pre>
+    <p>The labels line should include <code>'Browser': 'chrome'</code> and <code>'Build': 'v2.1.0'</code>, and the
+        failed test should show a traceback, one screenshot and the browser version log. Open
+        <code>reports/report.html</code> and find the same evidence on the failed row. If any of it is missing in CI, fix
+        that before you add more tests.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> pytest-glow-report writes an HTML report, a JSON file and a run history with no extra setup. Steps, logs and
+        screenshots attach to the test that was running.</p><p><strong>Try this</strong> Run the evidence exercise in CI and keep <code>report.html</code> as a build artifact.</p><p><strong>Next</strong> Part VI starts with Chapter 17: how to structure the framework itself.</p></aside>
     <hr>
     
-<h1 id="part-ix-enterprise-patterns">PART IX: ENTERPRISE PATTERNS</h1>
-    <h2 id="architectures-that-scale">Architectures That Scale</h2>
+<h1 id="part-vi-building-and-running-a-framework">PART VI: BUILDING AND RUNNING A FRAMEWORK</h1>
+    <h2 id="architecture-ci-estimation-and-test-data">Architecture, CI, Estimation and Test Data</h2>
+    <p>How to structure a framework, run it in CI, plan the work, check data with SQL, and borrow what older tools got
+        right.</p>
     <hr>
     <h1 id="chapter-17-the-four-layer-architecture">Chapter 17: The Four-Layer Architecture</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Separate test intent, domain actions, page mechanics, and infrastructure.</p><p><strong>Put it to work</strong> Change a locator without editing the business assertion or fixture lifecycle.</p></aside>
     <h2 id="why-framework-architecture-matters">Why Framework Architecture Matters</h2>
@@ -4234,13 +4367,16 @@ def test_order_history(driver, api_client):
     user = api_client.create_user()
     order = api_client.create_order(user.id, products=["SKU-1"])
 
-    # Restore session
-    login_via_teleport(driver, user)
+    # Log in without the UI: your own helper, for example API token
+    # injection (Chapter 5) or a saved Teleport state (Chapter 6)
+    restore_session(driver, user)
 
     # Only test the UI part we're verifying
     navigate_to_history(driver)
     assert_order_visible(driver, order.id)
 </code></pre>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Four layers, from tests down to infrastructure, keep a locator change from spreading into test intent, and data
+        created through an API keeps UI tests short.</p><p><strong>Try this</strong> Change one locator in your framework and count how many files you had to edit. If it is more than one, move it down a layer.</p><p><strong>Next</strong> Chapter 18 runs the suite in CI.</p></aside>
     <hr>
     <h1 id="chapter-18-cicd-integration-patterns">Chapter 18: CI/CD Integration Patterns</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Keep CI runs reproducible, isolated, and diagnosable.</p><p><strong>Put it to work</strong> Compare local and CI inputs and verify artifact upload after a failing test.</p></aside>
     <h2 id="a-complete-github-actions-workflow">A Complete GitHub Actions Workflow</h2>
@@ -4330,50 +4466,11 @@ def driver():
         drv.quit()
 </code></pre>
     <p>Add more Python versions or Microsoft Edge to the matrix only after you have a passing Chrome job. Edge is present on current GitHub-hosted Ubuntu images, but confirm that on the software list before you depend on it. If you need a specific Chrome version, the Waitless workflow uses <code>browser-actions/setup-chrome@v1</code> to install one.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> A good CI job pins its inputs, prints browser versions, and uploads reports even when tests fail.</p><p><strong>Try this</strong> Break one test on purpose and check that the CI run still uploads the report and screenshots.</p><p><strong>Next</strong> Chapter 19 turns to planning: how long will the automation take?</p></aside>
     <hr>
-    <h1 id="part-x-specialized-environments">PART X: SPECIALIZED ENVIRONMENTS</h1>
-    <hr>
-    <h1 id="chapter-19-wvdautomation-windows-virtual-desktop">Chapter 19: Remote Desktops and Visual Sonar</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Model remote-desktop constraints explicitly.</p><p><strong>Put it to work</strong> Install the published package and follow the map and run flow from Chapter 14 on one controlled window.</p></aside>
-    <p><strong>This is a short note</strong>, not a full Windows Virtual Desktop manual. There is no published <code>wvdautomation</code> package and no <code>WVDSession</code> API. The published tool is Visual Sonar, covered in Chapter 14.</p>
-    <h2 id="the-wvd-challenge">The WVD Challenge</h2>
-    <p>Windows Virtual Desktop (Azure Virtual Desktop) sessions present:</p>
-    <ul>
-        <li>Different connection methods than Citrix</li>
-        <li>Azure AD authentication</li>
-        <li>Session persistence challenges</li>
-        <li>Scaling across multiple hosts</li>
-    </ul>
-    <p>Inside the session the application is only pixels, so DOM based tools cannot see it. This is the problem Visual Sonar (Chapter 14) was built for.</p>
-    <hr>
-    <h2 id="installation_6">Installation</h2>
-    <p>The <a href="https://github.com/godhiraj-code/wvdautomation">wvdautomation</a> repository on GitHub is the home of Visual Sonar. There is no separate <code>wvdautomation</code> package on PyPI; install Visual Sonar instead (Windows only):</p>
-    <pre><code class="language-bash">pip install visual-sonar
-</code></pre>
-    <h2 id="basic-usage_6">Basic Usage</h2>
-    <p>Signing in to the workspace and opening the session is not automated by the tool. Start the session first, bring the remote window to the front, then map and run your form as shown in Chapter 14:</p>
-    <pre><code class="language-bash"># 1. Map the form once: Visual Sonar presses TAB and you name each detected field
-visual-sonar map
-#    Names use name:type, e.g. username:text, password:text, signin:click
-
-# 2. Put your values in input.json (keep it out of Git)
-#    {"username": "admin@company.com", "password": "...", "signin": true}
-
-# 3. Run the automation
-visual-sonar run
-
-# Data-driven runs and OCR checks
-visual-sonar batch test_cases/users.csv
-visual-sonar extract verify 100 200 300 50 "Welcome"
-</code></pre>
-    <p>The repository also contains a WVD simulator, so you can practise mapping and running flows before you point them at a real remote desktop.</p>
-    <hr>
-    
-<h1 id="part-xi-advanced-topics">PART XI: ADVANCED TOPICS</h1>
-    <hr>
-    <h1 id="chapter-20-effort-estimation-for-automation-projects">Chapter 20: Effort Estimation for Automation Projects
-    </h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Estimate with assumptions, ranges, and measured feedback.</p><p><strong>Put it to work</strong> Break one feature into tasks and compare the estimate with actual work.</p></aside>
+    <h1 id="chapter-19-effort-estimation-for-automation-projects">Chapter 19: Effort Estimation for Automation Projects</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Estimate with assumptions, ranges, and measured feedback.</p><p><strong>Put it to work</strong> Break one feature into tasks and compare the estimate with actual work.</p></aside>
     <h2 id="the-estimation-problem">The Estimation Problem</h2>
-    <p>Automation estimation is notoriously inaccurate. These are illustrative examples, not measured project data:</p>
+    <p>Automation estimation is notoriously inaccurate. For example:</p>
     <ul>
         <li>"This should take 2 hours" → 2 days</li>
         <li>"Simple login automation" → 3 weeks (with SSO, MFA, session handling)</li>
@@ -4381,6 +4478,8 @@ visual-sonar extract verify 100 200 300 50 "Welcome"
     </ul>
     <hr>
     <h2 id="the-five-step-framework">The Five-Step Framework</h2>
+    <p>The hours and multipliers below are starting points. Replace them with numbers from your own past work as soon
+        as you have them.</p>
     <h3 id="step-1-decompose-ruthlessly">Step 1: Decompose Ruthlessly</h3>
     <p><strong>Rule of thumb</strong>: If a task can't be broken into pieces under 4 hours, you don't understand it yet.</p>
     <pre><code>BAD:  "Automate login flow" (1 vague task)
@@ -4397,9 +4496,7 @@ GOOD: "Automate login flow":
 
 TOTAL: 18h (not "4 hours")
 </code></pre>
-    <p><em>The hour breakdown is an illustrative example, not measured data.</em></p>
     <h3 id="step-2-classify-by-complexity">Step 2: Classify by Complexity</h3>
-    <p><em>Rule of thumb figures, not measured data. Adjust them from your own past work.</em></p>
     <table>
         <thead>
             <tr>
@@ -4427,7 +4524,8 @@ TOTAL: 18h (not "4 hours")
         </tbody>
     </table>
     <h3 id="step-3-apply-base-estimates">Step 3: Apply Base Estimates</h3>
-    <p><em>Rule of thumb figures, not measured data. Adjust them from your own past work.</em></p>
+    <p>Use the column that matches the complexity you picked in Step 2. The columns already include the Step 2
+        multiplier: medium is twice simple, and complex is four times simple, so do not multiply again.</p>
     <table>
         <thead>
             <tr>
@@ -4471,7 +4569,6 @@ TOTAL: 18h (not "4 hours")
         </tbody>
     </table>
     <h3 id="step-4-add-multipliers">Step 4: Add Multipliers</h3>
-    <p><em>Rule of thumb figures, not measured data. Adjust them from your own past work.</em></p>
     <pre><code>Environment factors:
   × 1.5 for legacy system without data-testid attributes
   × 1.3 for Shadow DOM heavy apps
@@ -4484,24 +4581,154 @@ Team factors:
   × 1.2 for distributed teams
 </code></pre>
     <h3 id="step-5-buffer-for-unknowns">Step 5: Buffer for Unknowns</h3>
-    <p><em>Rule of thumb figures, not measured data. Adjust them from your own past work.</em></p>
     <pre><code>Confidence level → Buffer:
   High confidence (done before):   +20%
   Medium confidence (similar):     +40%
   Low confidence (new territory):  +80%
 </code></pre>
+    <h2 id="worked-example-estimating-checkout">Worked Example: Estimating a Checkout Feature</h2>
+    <p>Here are the five steps applied to one feature: checkout with a discount code. The app has a cart page, a
+        checkout page with two steps, six form fields, and a modal that shows coupon errors. There is an API you can use
+        to seed a cart. The pages have no <code>data-testid</code> attributes, and your team has automated a checkout
+        before.</p>
+    <p><strong>Steps 1 to 3: tasks, complexity and base hours.</strong> A complex page object is 8 hours, which breaks
+        the four-hour rule, so it is split into two tasks.</p>
+    <table><thead><tr><th>Task</th><th>Complexity</th><th>Base hours</th></tr></thead><tbody><tr><td>Cart page object</td><td>Medium</td><td>4h</td></tr><tr><td>Checkout page object, shipping step</td><td>Complex (half)</td><td>4h</td></tr><tr><td>Checkout page object, payment step</td><td>Complex (half)</td><td>4h</td></tr><tr><td>Six form fields</td><td>Medium</td><td>6 × 1h = 6h</td></tr><tr><td>Coupon error modal</td><td>Simple</td><td>1h</td></tr><tr><td>API helper to seed a cart</td><td>Medium</td><td>4h</td></tr><tr><td><strong>Total</strong></td><td></td><td><strong>23h</strong></td></tr></tbody></table>
+    <p><strong>Step 4: multipliers.</strong> No <code>data-testid</code> attributes (× 1.5), and the team has done
+        this before (× 0.8): 23 × 1.5 × 0.8 = 27.6, so about 28 hours.</p>
+    <p><strong>Step 5: buffer.</strong> You have built something similar, so use medium confidence (+40%):
+        27.6 × 1.4 = 38.6, so about 39 hours.</p>
+    <p>Give the result as a range, not one number: <strong>28 to 39 hours</strong>, about four to five working days for
+        one person. Say what it assumes: the seeding API works, the form needs no special test data, and the test
+        environment is free that week. If one of those turns out false, re-estimate instead of quietly working late.</p>
+    <h2 id="put-it-to-work-compare-with-actual">🔧 Put It to Work: Compare With What Really Happened</h2>
+    <p>An estimate only gets better if you check it. Keep a small table next to the plan and fill in the actual hours
+        as you go:</p>
+    <table><thead><tr><th>Task</th><th>Estimate</th><th>Actual</th><th>Why it differed</th></tr></thead><tbody><tr><td>Cart page object</td><td>4h</td><td></td><td></td></tr><tr><td>Checkout page object, shipping step</td><td>4h</td><td></td><td></td></tr><tr><td>Checkout page object, payment step</td><td>4h</td><td></td><td></td></tr><tr><td>Six form fields</td><td>6h</td><td></td><td></td></tr><tr><td>Coupon error modal</td><td>1h</td><td></td><td></td></tr><tr><td>API helper to seed a cart</td><td>4h</td><td></td><td></td></tr></tbody></table>
+    <p>When the feature is done, divide the total actual hours by the estimate before the buffer (28 hours in this
+        example). A ratio near 1.0 means your base hours and multipliers fit your team. If the ratio is far from 1.0 on several features in a row, change the base hours in
+        Step 3 or the multipliers in Step 4, not just the buffer. The "why it differed" column tells you which one.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Break work into tasks under four hours, pick a complexity, apply base hours and multipliers, add a buffer, give a
+        range, and then compare it with what really happened.</p><p><strong>Try this</strong> Estimate your next feature with the five steps and fill in the comparison table as you work.</p><p><strong>Next</strong> Chapter 20 uses SQL to seed, check and clean up test data.</p></aside>
     <hr>
-    <h1 id="chapter-21-sql-for-automation-testers">Chapter 21: SQL for Automation Testers</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Validate data with targeted, understandable queries.</p><p><strong>Put it to work</strong> Inspect the query plan and confirm that the query returns the intended rows.</p></aside>
+    <h1 id="chapter-20-sql-for-automation-testers">Chapter 20: SQL for Automation Testers</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Validate data with targeted, understandable queries.</p><p><strong>Put it to work</strong> Inspect the query plan and confirm that the query returns the intended rows.</p></aside>
     <h2 id="why-sql-matters">Why SQL Matters</h2>
-    <p>Automation often requires:</p>
+    <p>A UI test can show a "Thank you for your order" page while the app saved the wrong total, saved the order
+        twice, or saved nothing at all. SQL lets a test look behind the screen. Automation often uses it to:</p>
     <ul>
-        <li>Verifying data persistence</li>
-        <li>Seeding test data</li>
-        <li>Cleaning up after tests</li>
-        <li>Diagnosing failures</li>
+        <li>Verify what the app actually saved</li>
+        <li>Seed test data</li>
+        <li>Clean up after tests</li>
+        <li>Diagnose failures</li>
     </ul>
+    <p>Always point these queries at a test database, never at production.</p>
+    <hr>
+    <h2 id="worked-example-check-what-checkout-saved">Worked Example: Check What Checkout Saved</h2>
+    <p>This example uses SQLite, which ships with Python, so you can run it as it is. The <code>test_user</code>
+        fixture seeds a user with a unique email and deletes only the rows it created. <code>place_order()</code>
+        stands in for your app; in a real UI test, that line is the checkout click. Save it as
+        <code>test_orders_sql.py</code> and run <code>python -m pytest -q</code>:</p>
+    <pre><code class="language-python">import sqlite3
+import uuid
+
+import pytest
+
+SCHEMA = """
+CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT UNIQUE NOT NULL);
+CREATE TABLE orders (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL,
+    total_cents INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX idx_orders_created ON orders(created_at);
+"""
+
+
+@pytest.fixture
+def db(tmp_path):
+    conn = sqlite3.connect(tmp_path / "shop.db")
+    conn.executescript(SCHEMA)
+    yield conn
+    conn.close()
+
+
+@pytest.fixture
+def test_user(db):
+    # Seed: a unique email per run, so parallel runs never share a user
+    email = f"qa+{uuid.uuid4().hex[:8]}@example.com"
+    user_id = db.execute("INSERT INTO users (email) VALUES (?)", (email,)).lastrowid
+    db.commit()
+    yield user_id
+    # Clean up: delete only the rows this test created
+    db.execute("DELETE FROM orders WHERE user_id = ?", (user_id,))
+    db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    db.commit()
+
+
+def place_order(db, user_id, total_cents):
+    """Stands in for your app. In a UI test this is the checkout click."""
+    db.execute(
+        "INSERT INTO orders (user_id, status, total_cents, created_at) "
+        "VALUES (?, 'PAID', ?, datetime('now'))",
+        (user_id, total_cents),
+    )
+    db.commit()
+
+
+def test_checkout_saves_exactly_one_paid_order(db, test_user):
+    place_order(db, test_user, 2599)
+
+    rows = db.execute(
+        "SELECT status, total_cents FROM orders WHERE user_id = ?", (test_user,)
+    ).fetchall()
+
+    # One row, not two: a double-click bug would show up here
+    assert rows == [("PAID", 2599)]
+
+
+def plan(db, sql):
+    return [row[3] for row in db.execute("EXPLAIN QUERY PLAN " + sql)]
+
+
+def test_date_filter_can_use_the_index(db):
+    by_function = plan(db, "SELECT id FROM orders WHERE strftime('%Y', created_at) = '2026'")
+    by_range = plan(
+        db,
+        "SELECT id FROM orders "
+        "WHERE created_at &gt;= '2026-01-01' AND created_at &lt; '2027-01-01'",
+    )
+    assert by_function[0].startswith("SCAN")    # reads every index entry
+    assert by_range[0].startswith("SEARCH")     # jumps to the date range
+</code></pre>
+    <p>Three habits matter more than the SQL itself:</p>
+    <ul>
+        <li><strong>Unique seed data.</strong> A random email means two runs in parallel never fight over the same
+            user.</li>
+        <li><strong>Exact checks.</strong> <code>rows == [("PAID", 2599)]</code> fails on a missing order, a wrong
+            total, and a duplicate order. <code>len(rows) &gt; 0</code> would only catch the first.</li>
+        <li><strong>Targeted cleanup.</strong> Delete by the id you created. Never empty whole tables, because another
+            test may be using them.</li>
+    </ul>
+    <h2 id="read-the-query-plan">Read the Query Plan</h2>
+    <p>The second test asks SQLite how it will run two queries that find the same rows. One wraps the column in a
+        function, the other uses a date range. With SQLite 3.46, <code>EXPLAIN QUERY PLAN</code> returns:</p>
+    <pre><code class="language-sql">-- strftime('%Y', created_at) = '2026'
+SCAN orders USING COVERING INDEX idx_orders_created
+
+-- created_at &gt;= '2026-01-01' AND created_at &lt; '2027-01-01'
+SEARCH orders USING COVERING INDEX idx_orders_created (created_at&gt;? AND created_at&lt;?)
+</code></pre>
+    <p><code>SCAN</code> means the database reads every entry. <code>SEARCH</code> means it jumps straight to the
+        range it needs. On a small test table you will not notice. On a large shared test database, the first version
+        can make a cleanup or verification step slow enough to time out. The exact wording differs between databases
+        and versions: MySQL and PostgreSQL use <code>EXPLAIN</code>, and their output looks different, but the question
+        is the same.</p>
     <hr>
     <h2 id="common-optimization-patterns">Common Optimization Patterns</h2>
+    <p>The examples below use MySQL syntax. In SQLite, <code>YEAR(created_at)</code> is written
+        <code>strftime('%Y', created_at)</code>, as in the worked example.</p>
     <h3 id="anti-pattern-1-non-sargable-predicates">Anti-Pattern 1: Non-SARGable Predicates</h3>
     <pre><code class="language-sql">-- ❌ BAD: Function on column prevents index use
 SELECT * FROM orders WHERE YEAR(created_at) = 2024;
@@ -4525,12 +4752,21 @@ CREATE INDEX idx_users_email ON users(email);
 -- For composite queries:
 CREATE INDEX idx_orders_user_date ON orders(user_id, created_at);
 </code></pre>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> SQL lets a test check what the app really saved, seed its own data and remove it afterwards. A query plan shows
+        whether a query searches an index or scans everything.</p><p><strong>Try this</strong> Add one database check after a UI test that saves something, and read the plan of the query it uses.</p><p><strong>Next</strong> Chapter 21 borrows two ideas from older tools like UFT/QTP.</p></aside>
     <hr>
-    <h1 id="chapter-22-legacy-lessons-wisdom-from-uftqtp">Chapter 22: Legacy Lessons - Wisdom from UFT/QTP</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Reuse sound abstraction and recovery ideas from legacy tools.</p><p><strong>Put it to work</strong> Make a recovery visible and confirm it does not hide the original defect.</p></aside>
+    <h1 id="chapter-21-legacy-lessons-wisdom-from-uftqtp">Chapter 21: Legacy Lessons - Wisdom from UFT/QTP</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Reuse sound abstraction and recovery ideas from legacy tools.</p><p><strong>Put it to work</strong> Make a recovery visible and confirm it does not hide the original defect.</p></aside>
     <h2 id="what-the-old-guard-got-right">What the Old Guard Got Right</h2>
-    <p>Despite being "legacy," UFT/QTP established patterns still valuable today:</p>
+    <p>UFT, called QTP before it was renamed, is a commercial tool many teams used long before Selenium was common.
+        People call it legacy, but two of its ideas are still worth copying: a central place for locators, and a planned
+        way to handle interruptions. Both also have a trap, so this chapter shows the idea and the trap together.</p>
     <h3 id="1-centralized-object-repository">1. Centralized Object Repository</h3>
-    <pre><code class="language-python"># Modern implementation in Python
+    <p>In UFT, every screen object is described once in a shared repository, and tests refer to it by name. When a
+        button changes, you fix one entry instead of every test. In Python, a class of locator tuples gives you the same
+        thing:</p>
+    <pre><code class="language-python">from selenium.webdriver.common.by import By
+
+
 class ObjectRepository:
     class Amazon:
         class HomePage:
@@ -4539,29 +4775,188 @@ class ObjectRepository:
 
         class ResultsPage:
             PRODUCT_LIST = (By.CSS_SELECTOR, "div.s-result-item")
-</code></pre>
-    <h3 id="2-recovery-scenarios">2. Recovery Scenarios</h3>
-    <pre><code class="language-python">from functools import wraps
 
-def with_recovery(max_retries=3):
+
+class HomePage:
+    """Page object: the only place that knows how to search."""
+
+    def __init__(self, driver):
+        self.driver = driver
+
+    def search(self, term):
+        repo = ObjectRepository.Amazon.HomePage
+        self.driver.find_element(*repo.SEARCH_BOX).send_keys(term)
+        self.driver.find_element(*repo.SEARCH_BUTTON).click()
+</code></pre>
+    <p>The trap is letting tests read the repository directly. Then a test knows about locators again, and you are
+        back to editing many files. Keep the repository behind page objects, as <code>HomePage.search()</code> does, so
+        tests only call actions. This is the same split as Chapter 17, where page objects live in the Business layer and tests never touch locators.</p>
+    <h3 id="2-recovery-scenarios">2. Recovery Scenarios</h3>
+    <p>UFT recovery scenarios run when a known interruption happens, such as an unexpected pop-up, deal with it, and
+        let the test carry on. The idea is good: a session timeout warning should not fail a checkout test. The trap is
+        that a recovery can also hide a real bug. If a new error dialog appears on every run and the recovery quietly
+        closes it, the suite stays green while users see the error.</p>
+    <p>So a recovery needs three rules: handle only interruptions you can name, log every recovery, and when the
+        attempts run out, raise the original error, not a new generic one. This decorator follows all three:</p>
+    <pre><code class="language-python">import logging
+import time
+from functools import wraps
+
+from selenium.common.exceptions import (
+    NoAlertPresentException,
+    StaleElementReferenceException,
+    UnexpectedAlertPresentException,
+)
+
+log = logging.getLogger("recovery")
+
+
+def with_recovery(max_attempts=3, delay=0.5):
+    """Retry known interruptions, log every recovery, and re-raise the
+    original error when the attempts run out."""
     def decorator(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
-            for attempt in range(max_retries):
+            for attempt in range(1, max_attempts + 1):
                 try:
                     return func(self, *args, **kwargs)
-                except UnexpectedAlertPresentException:
-                    self.driver.switch_to.alert.dismiss()
+                except UnexpectedAlertPresentException as error:
+                    if attempt == max_attempts:
+                        raise
+                    log.warning("%s attempt %d: unexpected alert %r, dismissing it",
+                                func.__name__, attempt, error.alert_text)
+                    try:
+                        self.driver.switch_to.alert.dismiss()
+                    except NoAlertPresentException:
+                        pass  # the browser already closed it
                 except StaleElementReferenceException:
-                    time.sleep(0.5)
-            raise Exception(f"Failed after {max_retries} recovery attempts")
+                    if attempt == max_attempts:
+                        raise
+                    log.warning("%s attempt %d: stale element, finding it again",
+                                func.__name__, attempt)
+                    time.sleep(delay)
         return wrapper
     return decorator
 </code></pre>
+    <p>Two tests check that it does what it says. The first opens a page that shows an alert, and the recovery logs it
+        and reads the text. The second keeps failing, and the original <code>StaleElementReferenceException</code>
+        comes out, with its message, after the last attempt:</p>
+    <pre><code class="language-python">import logging
+from urllib.parse import quote
+
+import pytest
+from selenium import webdriver
+from selenium.common.exceptions import StaleElementReferenceException
+from selenium.webdriver.common.by import By
+
+from recovery import with_recovery
+
+PAGE = "&lt;p id='msg'&gt;Ready&lt;/p&gt;&lt;script&gt;setTimeout(() =&gt; alert('Session will expire soon'), 0)&lt;/script&gt;"
+
+
+class StatusPage:
+    def __init__(self, driver):
+        self.driver = driver
+
+    @with_recovery()
+    def message(self):
+        return self.driver.find_element(By.ID, "msg").text
+
+
+class AlwaysStale:
+    driver = None
+
+    @with_recovery(max_attempts=2, delay=0)
+    def message(self):
+        raise StaleElementReferenceException("element is gone")
+
+
+@pytest.fixture
+def driver():
+    drv = webdriver.Chrome()
+    yield drv
+    drv.quit()
+
+
+def test_alert_is_dismissed_and_logged(driver, caplog):
+    driver.get("data:text/html;charset=utf-8," + quote(PAGE))
+    with caplog.at_level(logging.WARNING, logger="recovery"):
+        assert StatusPage(driver).message() == "Ready"
+    assert "unexpected alert" in caplog.text
+
+
+def test_original_error_is_raised_when_recovery_fails(caplog):
+    with caplog.at_level(logging.WARNING, logger="recovery"):
+        with pytest.raises(StaleElementReferenceException, match="element is gone"):
+            AlwaysStale().message()
+    assert "stale element" in caplog.text
+</code></pre>
+    <p>Read the recovery log after each run. A recovery that runs now and then is doing its job. A recovery that runs
+        on every test is a bug report waiting to be written.</p>
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> A central object repository keeps locators in one place, and recovery scenarios handle known interruptions. Both
+        work today if page objects hide the repository and every recovery is logged and never hides the original error.</p><p><strong>Try this</strong> Add <code>with_recovery</code> to one page object method, trigger the interruption it handles, and confirm the log shows the recovery.</p><p><strong>Next</strong> Part VII starts with Chapter 22, which splits AI testing into three layers.</p></aside>
     <hr>
-    <h1 id="chapter-23-ai-powered-testing">Chapter 23: AI-Powered Testing - Privacy-First &amp; Local SLMs</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Separate AI integration, model quality, and execution correctness.</p><p><strong>Put it to work</strong> Build a small fixture set and define a rubric before comparing model outputs.</p></aside><h2 id="separate-ai-test-layers">Separate three kinds of evidence</h2>
+    <h1 id="part-vii-testing-ai-systems-and-agents">PART VII: TESTING AI SYSTEMS AND AGENTS</h1>
+    <h2 id="evidence-verification-and-coordination">Evidence, Verification and Coordination</h2>
+    <p>Part IV tested AI features one tool at a time. This part steps back: how to test the layers around a model, how to
+        check what an agent really did, and how to keep several helper services from fighting over one browser.</p>
+    <hr>
+    <h1 id="chapter-22-testing-ai-systems-in-three-layers">Chapter 22: Testing AI Systems in Three Layers</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Separate AI integration, model quality, and execution correctness.</p><p><strong>Put it to work</strong> Build a small fixture set and define a rubric before comparing model outputs.</p></aside><h2 id="separate-ai-test-layers">Separate three kinds of evidence</h2>
 <p>An AI feature has deterministic software around a variable model. Test those layers separately so a failing network call, a malformed tool argument, and a poor answer do not collapse into one vague failure.</p>
 <table><thead><tr><th>Layer</th><th>What to test</th><th>Evidence</th></tr></thead><tbody><tr><td>Integration</td><td>Request structure, parsing, timeouts, cancellation, retries</td><td>Deterministic fixtures and contract assertions</td></tr><tr><td>Model behavior</td><td>Task quality across representative and adversarial inputs</td><td>A versioned evaluation set and a scored rubric</td></tr><tr><td>Agent execution</td><td>Tool selection, permitted actions, actual state changes</td><td>A trace tied to independent postconditions</td></tr></tbody></table>
+<h2 id="worked-example-test-the-code-around-the-model">Worked Example: Test the Code Around the Model</h2>
+<p>Here is the integration layer in practice. A support tool asks a model to label each ticket <code>low</code> or
+    <code>high</code> and expects JSON back. The model is not under test here; your parsing is. With
+    <code>pytest-mockllm</code> from Chapter 13, each test feeds the app one exact answer:</p>
+<pre><code class="language-python">import json
+
+import pytest
+from openai import OpenAI
+
+PROMPT = 'Classify the support ticket. Reply only with JSON like {"priority": "low"} or {"priority": "high"}.'
+
+
+class ModelOutputError(Exception):
+    """The model answered, but not in the shape the app needs."""
+
+
+def triage_ticket(text: str) -&gt; str:
+    """App code under test (normally imported from your project)."""
+    client = OpenAI(api_key="test-key")
+    reply = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": PROMPT}, {"role": "user", "content": text}],
+    )
+    raw = reply.choices[0].message.content
+    try:
+        priority = json.loads(raw)["priority"]
+    except (json.JSONDecodeError, KeyError, TypeError) as error:
+        raise ModelOutputError(f"unusable model output: {raw[:40]!r}") from error
+    if priority not in {"low", "high"}:
+        raise ModelOutputError(f"unknown priority: {priority!r}")
+    return priority
+
+
+def test_well_formed_answer_is_used(mock_openai):
+    mock_openai.add_response('{"priority": "high"}')
+    assert triage_ticket("Checkout page is down") == "high"
+
+
+@pytest.mark.parametrize("raw", [
+    "Sure! This looks like high priority.",  # prose instead of JSON
+    '{"level": "high"}',                     # missing field
+    '{"priority": "urgent"}',                # value the app does not know
+])
+def test_bad_answer_fails_with_a_clear_error(mock_openai, raw):
+    mock_openai.add_response(raw)
+    with pytest.raises(ModelOutputError):
+        triage_ticket("Checkout page is down")
+</code></pre>
+<p>All four tests run offline in under a second. The three bad answers are the ones models really produce: friendly
+    prose instead of JSON, a renamed field, and a value your code has never seen. Each one now fails with a clear
+    <code>ModelOutputError</code> instead of a <code>KeyError</code> deep in your code, or a ticket silently filed with
+    the wrong priority. Whether the model picks the <em>right</em> priority is a model evaluation question, covered
+    next.</p>
 <h2 id="local-model-tradeoffs">Local models: a deployment choice</h2>
 <p>Local inference can reduce dependence on external APIs, but it does not guarantee privacy, predictable latency, or zero cost. Audit telemetry, logs, model downloads, access controls, hardware contention, and data retention. Compare local and hosted options using your own workload and quality thresholds.</p>
 <h2 id="review-locator-proposals">Treat locator healing as a proposal</h2>
@@ -4637,7 +5032,9 @@ def with_recovery(max_retries=3):
 
 
 
-    <h1 id="chapter-24-the-sentinel-autonomous-agents">Chapter 24: The Sentinel - Toward Fully Autonomous Quality Agents
+    
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Test the code around a model, the model's answers, and an agent's actions as three separate layers, each with its
+        own evidence.</p><p><strong>Try this</strong> Build the triage example, then write ten real tickets with the priority you expect and a scoring rule before you compare two models.</p><p><strong>Next</strong> Chapter 23 designs a coordinator that checks what agents really did.</p></aside><h1 id="chapter-23-the-sentinel-autonomous-agents">Chapter 23: The Sentinel - Toward Fully Autonomous Quality Agents
     </h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Design a bounded agent coordinator with independent verification.</p><p><strong>Put it to work</strong> Inject a false success report and require the verifier to detect missing evidence.</p></aside><p><strong>Architecture proposal.</strong> The Sentinel is a design for coordinating test tools and agent actions. This chapter describes contracts to implement and evaluate; it is not a claim that a fully autonomous quality system has been delivered.</p>
 <h2 id="sentinel-responsibilities">Give each component one responsibility</h2>
 <table><thead><tr><th>Component</th><th>Responsibility</th><th>Must not do</th></tr></thead><tbody><tr><td>Observer</td><td>Capture page, command, and environment evidence</td><td>Declare success from logs alone</td></tr><tr><td>Planner</td><td>Propose an action and its expected outcome</td><td>Execute outside the policy boundary</td></tr><tr><td>Policy gate</td><td>Check scope, permissions, budget, and prior outcomes</td><td>Interpret a timeout as permission</td></tr><tr><td>Executor</td><td>Run an approved action with a bounded deadline</td><td>Retry irreversible actions blindly</td></tr><tr><td>Verifier</td><td>Check independent postconditions and record evidence</td><td>Trust an agent’s self-reported completion</td></tr></tbody></table>
@@ -4648,6 +5045,48 @@ def with_recovery(max_retries=3):
 <p>Use a run identifier and an action identifier across every transition. Preserve the original plan, authorization decision, timestamps, tool result, and verification record. A subprocess exiting successfully is useful evidence; it does not establish that a requested deployment, edit, or transaction actually happened.</p>
 <h2 id="sentinel-failure-boundaries">Design the failure boundaries first</h2>
 <ul><li><strong>Timeout:</strong> stop or cancel work where possible and report unknown state until verification resolves it.</li><li><strong>Retry:</strong> check whether the outcome already exists and whether the operation is safe to repeat.</li><li><strong>Disagreement:</strong> retain conflicting evidence and require review rather than choosing the most confident answer.</li><li><strong>Budget exhaustion:</strong> return an incomplete result with artifacts and a bounded next step.</li></ul>
+<h2 id="sentinel-example-verifier">Example: A Verifier That Ignores the Claim</h2>
+<p>The Verifier's rule is that an agent's report of success is a claim, not evidence. Here is that rule as code you can
+    run. The agent says it produced a report file; the verifier only looks at the file:</p>
+<pre><code class="language-python">from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional
+
+
+@dataclass
+class ActionReport:
+    action_id: str
+    claimed_status: str               # what the agent says happened
+    artifact: Optional[Path] = None   # what the action should have produced
+
+
+def verify(report: ActionReport) -&gt; str:
+    """Decide from evidence only. This function never reads claimed_status."""
+    if report.artifact is None:
+        return "unresolved"
+    if not report.artifact.exists() or report.artifact.stat().st_size == 0:
+        return "failed"
+    return "verified"
+
+
+def test_false_success_report_is_caught(tmp_path):
+    claim = ActionReport("action-007", "complete", tmp_path / "report.html")
+    assert verify(claim) == "failed"  # the agent said complete, but no file exists
+
+
+def test_claim_without_evidence_stays_unresolved():
+    assert verify(ActionReport("action-008", "complete")) == "unresolved"
+
+
+def test_real_artifact_is_verified(tmp_path):
+    report = tmp_path / "report.html"
+    report.write_text("&lt;h1&gt;3 passed&lt;/h1&gt;")
+    assert verify(ActionReport("action-009", "complete", report)) == "verified"
+</code></pre>
+<p>The first test is the "Put it to work" exercise for this chapter: a false success report. The agent says
+    <code>complete</code>, the file is not there, and the verifier says <code>failed</code>. A claim with no evidence
+    to check stays <code>unresolved</code> instead of being counted as a pass. Real verifiers check richer evidence, such
+    as a database row, a page state, or a deployed version, but the shape stays the same.</p>
 <h2 id="sentinel-validation">Validate the coordinator</h2>
 <p>Start with a read-only diagnostic flow. Inject a missing artifact, a hanging command, a repeated request, and a misleading success message. The coordinator should distinguish failed, blocked, unresolved, and verified completion without losing the evidence from the first attempt.</p>
 
@@ -4672,8 +5111,9 @@ def with_recovery(max_retries=3):
 
 
 
-    <h1 id="chapter-25-constellation-based-automation">Chapter 25: Constellation Based Automation - The Milky Way
-        Strategy</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Coordinate services without losing ownership of the browser.</p><p><strong>Put it to work</strong> Inject a timeout and a duplicate command; verify that neither causes an unsafe repeat.</p></aside><p><strong>Architecture proposal.</strong> Constellation Based Automation separates test intent from environment coordination. A hub owns the browser session while small services observe or handle explicitly permitted conditions. The design can complement page objects; it does not remove the need for stable interfaces, assertions, or maintenance.</p>
+    
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> An agent's report of success is a claim. A verifier checks independent evidence, and every action ends as failed,
+        blocked, unresolved or verified.</p><p><strong>Try this</strong> Run the false-success test, then add a case for a hanging command and one for a repeated request.</p><p><strong>Next</strong> Chapter 24 coordinates several helper services around one browser.</p></aside><h1 id="chapter-24-constellation-based-automation">Chapter 24: Constellation-Based Automation - The Milky Way Strategy</h1><aside class="chapter-brief"><p><strong>What you’ll learn</strong> Coordinate services without losing ownership of the browser.</p><p><strong>Put it to work</strong> Inject a timeout and a duplicate command; verify that neither causes an unsafe repeat.</p></aside><p><strong>Architecture proposal.</strong> Constellation-Based Automation separates test intent from environment coordination. A hub owns the browser session while small services observe or handle explicitly permitted conditions. The design can complement page objects; it does not remove the need for stable interfaces, assertions, or maintenance.</p>
 <h2 id="cba-control-boundary">Keep one owner of browser actions</h2>
 <p>Concurrent services can race to click, navigate, or restore authentication. Route every mutation through the hub. Give a service a time-limited action lease, reject stale commands, and release the lease after completion or cancellation.</p>
 <table><thead><tr><th>Role</th><th>Useful responsibility</th><th>Boundary</th></tr></thead><tbody><tr><td>Hub</td><td>Own the session and order actions</td><td>One mutation at a time</td></tr><tr><td>Waiter</td><td>Report relevant readiness signals</td><td>Quietness is not correctness</td></tr><tr><td>Environment handler</td><td>Dismiss explicitly recognized, nonessential overlays</td><td>Never hide an unexpected error or a business-critical consent flow</td></tr><tr><td>Historian</td><td>Record events and approved state snapshots</td><td>Redact secrets and isolate identities</td></tr></tbody></table>
@@ -4688,11 +5128,74 @@ def with_recovery(max_retries=3):
   "parameters": {"target": "checkout-submit"},
   "requiresApproval": false
 }</code></pre>
-<p>This is an illustrative application envelope, not a published protocol specification. Agree on authentication, schema validation, compatibility, cancellation, and duplicate-message handling before connecting services.</p>
+<p>This envelope is an example for your own services, not a published standard. Agree on authentication, schema validation, compatibility, cancellation, and duplicate-message handling before connecting services.</p>
 <h2 id="cba-timeout-policy">A timeout is a policy decision</h2>
 <p>There is no universal handshake budget. Measure service latency and define separate deadlines for observation and mutation. A missing readiness response should leave an action blocked or unresolved; do not proceed merely to keep the test fast.</p>
 <h2 id="cba-intervention-evidence">Make interventions visible</h2>
 <p>Record the original intent, the condition that triggered an intervention, the policy that allowed it, and before/after evidence. Preserve unexpected overlays in failure artifacts. Compare runs with and without the coordinator to detect cases where helpful recovery is hiding a regression.</p>
+<h2 id="cba-example-hub">Example: A Hub That Rejects Stale and Repeated Commands</h2>
+<p>The hub's rules fit in a few lines. A service asks before it acts; the hub refuses a command it has already run, a
+    command that arrives after its deadline, and a second service while another one holds the lease. A fake clock
+    makes the timing tests exact:</p>
+<pre><code class="language-python">class Hub:
+    """Owns the browser session. Every service asks the hub before it acts."""
+
+    def __init__(self, clock, lease_seconds=5.0):
+        self.clock = clock
+        self.lease_seconds = lease_seconds
+        self.lease = None   # (service, expires_at)
+        self.done = set()   # action ids that already ran
+
+    def request(self, service, action_id, deadline):
+        now = self.clock()
+        if action_id in self.done:
+            return "rejected: duplicate"
+        if now &gt; deadline:
+            return "rejected: stale"
+        if self.lease and self.lease[1] &gt; now and self.lease[0] != service:
+            return "rejected: busy"
+        self.lease = (service, now + self.lease_seconds)
+        return "accepted"
+
+    def complete(self, service, action_id):
+        self.done.add(action_id)
+        if self.lease and self.lease[0] == service:
+            self.lease = None
+
+
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        return self.now
+
+
+def test_duplicate_command_is_not_repeated():
+    hub = Hub(FakeClock())
+    assert hub.request("overlay-handler", "action-007", deadline=10) == "accepted"
+    hub.complete("overlay-handler", "action-007")
+    assert hub.request("overlay-handler", "action-007", deadline=10) == "rejected: duplicate"
+
+
+def test_command_that_arrives_after_its_deadline_is_rejected():
+    clock = FakeClock()
+    hub = Hub(clock)
+    clock.now = 12.0  # the message was delayed
+    assert hub.request("overlay-handler", "action-008", deadline=10) == "rejected: stale"
+
+
+def test_second_service_waits_for_the_lease():
+    clock = FakeClock()
+    hub = Hub(clock, lease_seconds=5)
+    assert hub.request("waiter", "action-009", deadline=30) == "accepted"
+    assert hub.request("historian", "action-010", deadline=30) == "rejected: busy"
+    clock.now = 6.0  # the first lease has expired
+    assert hub.request("historian", "action-010", deadline=30) == "accepted"
+</code></pre>
+<p>These are the two failures from this chapter's "Put it to work": a duplicate command and a timeout. Neither
+    leads to a second click. In a real setup, the hub would also run the approved action on the browser and record it;
+    the decision logic above is the part worth testing first.</p>
 <h2 id="cba-first-experiment">Start with one controlled experiment</h2>
 <ol><li>Choose one flow and one known, nonessential overlay.</li><li>Run the observer without allowing mutations and classify its proposed interventions.</li><li>Enable one approved intervention and verify the business outcome independently.</li><li>Inject a delayed response, a duplicate event, and an unrecognized overlay.</li><li>Compare false interventions, runtime, and diagnostic quality before expanding the design.</li></ol>
 
@@ -4759,10 +5262,12 @@ def with_recovery(max_retries=3):
 
 
 
-    <h1 id="appendices">APPENDICES</h1>
+    
+    <aside class="chapter-brief chapter-close"><p><strong>What you learned</strong> Let one hub own the browser, give services short leases, reject stale or repeated commands, and record every
+        intervention.</p><p><strong>Try this</strong> Wire the hub into the controlled experiment from this chapter, starting with the observer in read-only mode.</p><p><strong>Next</strong> The conclusion pulls the main ideas of the book together.</p></aside><h1 id="appendices">APPENDICES</h1>
     <hr>
     <h2 id="appendix-a-tool-installation-quick-reference">Appendix A: The Complete Toolkit</h2>
-    <p>Every project in this book is open source. Install names, source code and articles:</p>
+    <p>Every published tool in this book is open source. Install names, source code and articles:</p>
     <table>
         <thead>
             <tr>
@@ -4973,9 +5478,9 @@ def with_recovery(max_retries=3):
         problems once, properly, beats solving them poorly forever.</p>
     <hr>
     <h2 id="the-complete-toolkit">The Complete Toolkit</h2>
-    <p>Every project in this book is open source. Install names, source code and articles for each one are listed in Appendix A.</p>
+    <p>Every published tool in this book is open source. Install names, source code and articles for each one are listed in Appendix A.</p>
     <hr>
-    <p><em>© 2025 Dhiraj Das. All rights reserved.</em></p>
+    <p><em>© 2026 Dhiraj Das. All rights reserved.</em></p>
 
 
 
