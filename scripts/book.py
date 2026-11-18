@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import hashlib
 import html
 import json
 import re
+import shutil
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -112,7 +114,7 @@ def check() -> None:
     parser.feed(html_text)
     parser.close()
 
-    duplicate_ids = sorted({item for item in parser.ids if parser.ids.count(item) > 1})
+    duplicate_ids = sorted(item for item, count in Counter(parser.ids).items() if count > 1)
     for element_id in duplicate_ids:
         errors.append(f"index.html contains duplicate id: {element_id}")
 
@@ -175,13 +177,13 @@ def build(output: Path) -> None:
             raise SystemExit(f"Refusing non-empty output directory: {output}")
     else:
         output.mkdir(parents=True)
-    (output / "index.html").write_bytes(HTML.read_bytes())
+    shutil.copyfile(HTML, output / "index.html")
     target_assets = output / "assets"
     target_assets.mkdir()
     for source in sorted(path for path in ASSETS.rglob("*") if path.is_file()):
         destination = target_assets / source.relative_to(ASSETS)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(source.read_bytes())
+        shutil.copyfile(source, destination)
 
     built_files = sorted(path for path in output.rglob("*") if path.is_file())
     manifest = {
