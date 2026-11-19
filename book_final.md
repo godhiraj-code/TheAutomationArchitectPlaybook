@@ -115,7 +115,7 @@ This part covers how browsers work, why tests flake, how to wait for the right s
 
 Many browser automation failures become easier to diagnose when you understand rendering, events, and element lifecycles. Other failures come from test data, services, infrastructure, or the test itself.
 
-- `ElementNotInteractableException` — The browser says the element isn't ready 
+- `ElementNotInteractableException` — The element exists but can't be used right now, for example because it is hidden or disabled 
 - `StaleElementReferenceException` — The DOM changed while you were looking at it 
 - `TimeoutException` — Something took longer than expected 
 - Element found but click doesn't work — Event handlers aren't attached yet
@@ -170,7 +170,7 @@ Modern browsers like Chrome are not a single program—they're a **collection of
 
 **🔍 Deep Dive: V8 Bindings & The DOM Bridge**
 
-JavaScript doesn't "own" the DOM. The DOM lives in the C++ core of the browser engine (Blink). When you call `document.getElementById()`, you're crossing a "bridge" from the JavaScript world (V8) to the C++ world. This context switching is expensive. In high-frequency automation, hundreds of these crossings occur every second, creating a performance bottleneck that can look like network latency.
+JavaScript doesn't "own" the DOM. The DOM lives in the C++ core of the browser engine (Blink). When you call `document.getElementById()`, you're crossing a "bridge" from the JavaScript world (V8) to the C++ world. Each crossing has a small cost. Code that crosses it many times in a tight loop can become slow, and that slowness can look like network latency.
 
 ### What This Means for Automation
 
@@ -184,9 +184,9 @@ Opening another tab does not guarantee a clean test session. Tabs in one Seleniu
 
 When you call `driver.execute_script()`, your JavaScript runs in the renderer process—the same place the website's JavaScript runs. This is why you can access `document`, `window`, and the DOM directly.
 
-**Key Insight #3: Network requests go through the browser process**
+**Key Insight #3: Network requests are handled outside the renderer**
 
-This is why some bot detection techniques work—they can observe network behavior at the browser level, not just at the page level.
+The page's renderer does not make network connections itself. The browser does, and in Chrome its network service does the work. This is one reason some bot detection works: it can look at how the browser itself makes requests, not just at what the page's JavaScript does.
 
 ---
 
@@ -200,7 +200,7 @@ When you navigate to a URL, here's what happens inside the browser:
 URL Entered → DNS Lookup → TCP Connection → TLS Handshake → HTTP Request → Response
 ```
 
-The browser process handles this. The response (HTML, CSS, JS, images) streams back.
+The browser handles this outside the renderer. In Chrome, its network service does the work. The response (HTML, CSS, JS, images) streams back.
 
 ### Stage 2: HTML Parsing and DOM Construction
 
@@ -252,7 +252,7 @@ StyleSheetList
 
 ### Stage 4: The Render Tree
 
-The DOM and CSSOM combine to create the **Render Tree**—only visible elements are included:
+The DOM and CSSOM combine to create the **Render Tree**. Elements with `display: none` are left out:
 
 ```
 RenderTree
@@ -264,7 +264,7 @@ RenderTree
 
 **💡 Key Insight: Elements with `display: none` are NOT in the render tree**
 
-This is why `element.is_displayed()` returns `False` for hidden elements—they literally don't exist in the visual representation.
+Elements with `visibility: hidden` stay in the render tree, because they still take up space. Selenium's `element.is_displayed()` does not read the render tree. It runs its own visibility check, which returns `False` for both `display: none` and `visibility: hidden`.
 
 ### Stage 5: Layout (Reflow)
 
@@ -292,7 +292,7 @@ Finally, the browser:
 
 ### 🔍 Deep Dive: The Compositor vs. Main Thread
 
-A common automation mystery: *The element is visible, but the click fails.* This often happens because of thread contention. The **Compositor Thread** (which handles scrolling and some animations) is separate from the **Main Thread** (which handles JS and Layout). If the Main Thread is blocked by a long-running script, the browser can still *scroll* (compositor), but it cannot *process a click* (main thread). Automation stability requires the Main Thread to be "idle."
+A common automation mystery: *The element is visible, but the click fails.* This often happens because of thread contention. The **Compositor Thread** (which handles scrolling and some animations) is separate from the **Main Thread** (which handles JS and Layout). If the Main Thread is blocked by a long-running script, the browser can still *scroll* (compositor), but it cannot *handle a click* until the main thread is free. The click waits in a queue and runs late. Automation stability requires the Main Thread to be "idle."
 
 ---
 
@@ -358,7 +358,7 @@ When your Selenium test clicks the button:
 
 The rest of the handler (`updateUI()`) only runs after the response arrives, when the awaited Promise resolves and its continuation is queued as a microtask.
 
-This is the #1 cause of flaky tests: **assuming synchronous completion**.
+This is one of the most common causes of flaky tests: **assuming synchronous completion**. In a study of 161 fixed flaky tests in open source projects, 45% were "async wait" problems, where the test did not wait properly for asynchronous work ([Luo et al., 2014](https://mir.cs.illinois.edu/lamyaa/publications/fse14.pdf)).
 
 ### The Solution: Proper Waiting
 
@@ -412,7 +412,7 @@ WebDriverWait(driver, 10).until(
 
 | Event | What's Ready | What's NOT Ready |
 | --- | --- | --- |
-| `DOMContentLoaded` | HTML parsed, DOM built | CSS, images, fonts, external JS |
+| `DOMContentLoaded` | HTML parsed, DOM built, deferred and module scripts run | Images, fonts, async scripts, and possibly some stylesheets |
 | `load` | All initial resources | Lazy-loaded content, AJAX data |
 | (no event) | Everything | — |
 
@@ -435,12 +435,13 @@ WebDriverWait(driver, 20).until(
     EC.presence_of_element_located((By.ID, "main-content"))
 )
 
-# Strategy 2: Wait for network idle (using JavaScript)
+# Strategy 2: Wait for the load event, then a short fixed pause.
+# This does not detect network idle; requests started later are missed.
 driver.get("https://example.com")
 driver.execute_script("""
     return new Promise(resolve => {
         if (document.readyState === 'complete') {
-            setTimeout(resolve, 500);  // Small buffer for AJAX
+            setTimeout(resolve, 500);  // Fixed pause, not a network check
         } else {
             window.addEventListener('load', () => setTimeout(resolve, 500));
         }
@@ -464,8 +465,9 @@ Understanding this communication protocol helps debug "weird" failures.
 ```
 ┌─────────────────┐     HTTP/REST      ┌─────────────────┐
 │                 │─────────────────────│                 │
-│   Your Test     │   {"using": "id",  │   ChromeDriver  │
-│   (Python)      │    "value": "btn"} │   (Executable)  │
+│   Your Test     │  {"using":          │   ChromeDriver  │
+│   (Python)      │   "css selector",   │   (Executable)  │
+│                 │    "value": "#btn"} │                 │
 │                 │◄────────────────────│                 │
 └─────────────────┘   {"value": {...}} └────────┬────────┘
                                                 │
@@ -502,7 +504,7 @@ That `"abc123"` is a **reference ID**. If the DOM element is removed and re-adde
 
 ## The Chrome DevTools Protocol (CDP)
 
-Selenium 4 introduced direct CDP access, unlocking powerful capabilities:
+Selenium can send CDP commands straight to Chrome. Selenium 3 already had `execute_cdp_cmd` for Chrome, and Selenium 4 made CDP much easier to use with typed DevTools support and WebDriver BiDi:
 
 ```python
 # Traditional WebDriver (limited)
@@ -520,17 +522,18 @@ driver.get("https://example.com")  # This request now carries the extra header
 
 | Domain | Capabilities |
 | --- | --- |
-| `Network` | Intercept requests, mock responses, throttle bandwidth |
+| `Fetch` | Intercept requests, mock responses |
+| `Network` | Monitor requests, add headers, throttle bandwidth |
 | `DOM` | Query/modify DOM, track mutations |
 | `Performance` | Collect metrics, trace execution |
-| `Console` | Capture console.log output |
+| `Runtime` and `Log` | Capture console.log output and browser log entries |
 | `Emulation` | Spoof device, geolocation, timezone |
 
 ---
 
 ### 🔍 Deep Dive: The Hidden Latency - Cost of a WebDriver Command
 
-Every Selenium command (e.g., `element.is_displayed()`) is an out-of-process network call. Even on localhost, there is overhead for serialization, network transmission, and deserialization. When you put a `find_element` call inside a tight loop, you're not just waiting for the browser; you're also paying a "tax" of about 5-10ms per call for the communication protocol itself. This is why batching interactions in JavaScript (using `execute_script`) is often much faster for complex tasks.
+Every Selenium command (e.g., `element.is_displayed()`) is an out-of-process network call. Even on localhost, there is overhead for serialization, network transmission, and deserialization. When you put a `find_element` call inside a tight loop, you're not just waiting for the browser; you're also paying a "tax" for the communication protocol itself, often a few milliseconds per call. Measure it on your own setup. This is why batching interactions in JavaScript (using `execute_script`) is often much faster for complex tasks.
 
 ---
 
@@ -637,11 +640,11 @@ When developers stop trusting test results, they stop looking at them. The autom
 
 ### 💡 Key Insight: Flakiness Is a Symptom, Not a Disease
 
-Every flaky test has a **deterministic root cause**. The test isn't "randomly" failing—it's failing because of specific conditions that aren't always present. Your job is to find those conditions.
+Most flaky tests have a **root cause you can find**. The test isn't failing at random. It fails because of specific conditions that aren't always present. Your job is to find those conditions.
 
 ### 🔍 Deep Dive: The Micro-Stutter - GC and JIT Interference
 
-Sometimes the browser itself stops responding for a few milliseconds. This happens during **Garbage Collection (GC)**—when V8 pauses execution to clean up memory—or **Just-In-Time (JIT) Compilation**. These "micro-stutters" are nearly invisible to humans but can cause a race condition to trigger in automation if the browser pauses exactly when a click is being sent. Stable automation builds in a small buffer for these unavoidable internal pauses.
+Sometimes the browser pauses its own work for a moment, for example during **Garbage Collection (GC)**, when V8 cleans up memory, or during **Just-In-Time (JIT) Compilation**. These "micro-stutters" are usually short and are rarely the real cause of a flaky test, but a pause at an unlucky moment can delay the page. Don't add a fixed buffer for them. Wait for a real condition instead, so a short pause only makes the wait a little longer.
 
 ---
 
@@ -682,7 +685,7 @@ The page is still loading when the click executes. The element might:
 </script>
 ```
 
-The button is in the DOM immediately, but the event listener is only attached when the `<script>` executes. If your test clicks before the script runs, nothing happens!
+The button is in the DOM immediately, but the event listener is only attached when the `<script>` executes. In this small example the script runs right after the button is parsed, so the gap is tiny. In real apps the gap is bigger: handlers are often attached by a large bundle loaded with `defer` or `async`, or when a framework hydrates the page. If your test clicks before that code runs, nothing happens!
 
 **Solution Pattern:**
 
@@ -695,6 +698,8 @@ wait = WebDriverWait(driver, 10)
 button = wait.until(EC.element_to_be_clickable((By.ID, "submit-btn")))
 button.click()
 ```
+
+This helps, but `element_to_be_clickable` only checks that the element is visible and enabled. It does not check that event handlers are attached or that nothing covers the element. For those, wait for a signal from the app, such as a ready flag or a loading overlay that has gone away.
 
 ---
 
@@ -732,7 +737,7 @@ element = wait.until(EC.presence_of_element_located((By.ID, "data-loaded")))
 
 ### Category 3: Animation Interference
 
-CSS transitions and JavaScript animations don't block Selenium. The test clicks where the button *will be*, not where it *is*.
+CSS transitions and JavaScript animations don't block Selenium. Selenium clicks where the element is at that moment. During an animation that can be the wrong spot, or another element can get the click.
 
 **Example:**
 
@@ -750,11 +755,11 @@ The modal slides in over 300ms. Selenium doesn't wait for CSS transitions.
 
 **🔍 Deep Dive: How Animations Break Clicks**
 
-1. Test finds element at position (100, 500) - where modal WILL be 
+1. Test finds a button in the modal while the modal is still sliding in 
 2. Browser reports element as "visible" because `opacity > 0` and `display != none` 
-3. Test sends click command to coordinates (100, 500) 
-4. Animation is still in progress - element is actually at (100, 350) 
-5. Click hits wrong element or nothing
+3. Selenium works out the button's center at that moment, say (100, 350), and clicks there 
+4. The animation keeps going, so the point may now be over another element, or over the button's old position 
+5. Click hits the wrong element or nothing, or Selenium raises `ElementClickInterceptedException`
 
 **Solution Pattern:**
 
@@ -850,19 +855,22 @@ def test_discount_during_sale_period():
 **Solution Patterns:**
 
 ```python
-# 1. Request dedicated CI resources
+# 1. Set a job timeout and pass Chrome flags that help in containers
 # .github/workflows/test.yml
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      # Chrome does not read this variable. Your driver fixture must read it
+      # and add each flag with options.add_argument().
       CHROME_ARGS: "--disable-dev-shm-usage --no-sandbox"
 
 # 2. Limit parallel browser instances
 # pytest.ini
 [pytest]
 # Max 4 parallel workers (pytest.ini comments must be on their own line)
+# -n needs the pytest-xdist plugin: pip install pytest-xdist
 addopts = -n 4
 
 # 3. Add resource monitoring
@@ -914,8 +922,8 @@ element.click()
 
 **Remaining Problems:**
 
-- Doesn't wait for network calls to complete 
-- Doesn't wait for animations to finish 
+- The built-in conditions don't wait for network calls to complete 
+- The built-in conditions don't wait for animations to finish 
 - Doesn't detect JavaScript-driven readiness 
 - Requires explicit waits everywhere in code
 
@@ -947,10 +955,10 @@ Before jumping to solutions, you need to diagnose the specific cause of flakines
 
 ### Tool 1: Retry Analysis
 
-Run the flaky test 50+ times and analyze patterns:
+Run the flaky test 50+ times and analyze patterns. Save these hooks as `conftest.py` next to your tests. pytest loads `conftest.py` on its own. A file with another name, such as `pytest_flaky_tracker.py`, only runs if you pass it with `-p pytest_flaky_tracker`.
 
 ```python
-# pytest_flaky_tracker.py
+# conftest.py
 import pytest
 import json
 from datetime import datetime
@@ -968,7 +976,8 @@ def pytest_runtest_makereport(item, call):
             "timestamp": datetime.now().isoformat(),
             "passed": report.passed,
             "duration": report.duration,
-            "error": str(report.longrepr) if report.failed else None
+            "error": str(report.longrepr) if report.failed else None,
+            "error_type": call.excinfo.typename if report.failed and call.excinfo else None,
         }
 
         # Append to results file
@@ -982,6 +991,27 @@ def pytest_runtest_makereport(item, call):
 
         with open(RESULTS_FILE, "w") as f:
             json.dump(data, f, indent=2)
+```
+
+Then count failures per test and per error type:
+
+```python
+# analyze_flaky.py
+import json
+from collections import Counter, defaultdict
+
+with open("flaky_analysis.json") as f:
+    runs = json.load(f)
+
+by_test = defaultdict(list)
+for run in runs:
+    by_test[run["test"]].append(run)
+
+for test, results in by_test.items():
+    failed = [r for r in results if not r["passed"]]
+    print(f"{test}: {len(failed)} of {len(results)} runs failed")
+    for error_type, count in Counter(r["error_type"] for r in failed).most_common():
+        print(f"  {count}x {error_type}")
 ```
 
 Run analysis:
@@ -999,8 +1029,9 @@ def driver(request):
     driver = webdriver.Chrome()
     yield driver
 
-    # Capture screenshot on failure
-    if request.node.rep_call.failed:
+    # Capture screenshot on failure. rep_call is missing if setup failed.
+    rep_call = getattr(request.node, "rep_call", None)
+    if rep_call is not None and rep_call.failed:
         screenshot_dir = Path("screenshots")
         screenshot_dir.mkdir(exist_ok=True)
 
