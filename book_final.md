@@ -3895,9 +3895,9 @@ Remote desktop environments present automation's hardest challenge:
 | --- | --- | --- | --- |
 | Web Browser | ✅ Full | ✅ Full | Elements, attributes, structure |
 | Native Desktop | ❌ None | ✅ Partial | Some UI elements via UI Automation |
-| Remote Desktop (Citrix/VDI) | ❌ None | ❌ None | **Only pixels** |
+| Remote Desktop (Citrix/VDI) | ❌ None | ❌ Usually none | **Only pixels** |
 
-When you connect to a Citrix session, all you receive is a video stream. There's no DOM, no accessibility tree, no UI Automation—just an image.
+When you connect to a Citrix session, what usually reaches your automation machine is a stream of screen images. There's no DOM, and usually no accessibility tree or UI Automation for the remote app, just an image.
 
 ### Traditional Approaches and Their Problems
 
@@ -3961,8 +3961,9 @@ Visual Sonar uses **focus change detection**: it presses TAB and compares screen
 ```bash
 pip install visual-sonar
 
-# Optional, for OCR checks: pytesseract (or easyocr)
-pip install pytesseract
+# Optional, for OCR checks: the ocr extra adds pytesseract
+# (the ocr-full extra adds easyocr)
+pip install "visual-sonar[ocr]"
 
 # Also install the Tesseract OCR binary:
 # Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
@@ -4128,7 +4129,7 @@ pip install project-vandal
 playwright install chromium
 ```
 
-Vandal works with Playwright for Python and its async API. It does not support Selenium or Playwright's sync API today.
+Vandal works with Playwright for Python. The `Vandal` class below uses Playwright's async API. The `pytest --vandal` plugin also runs sync Playwright tests. Selenium is not supported today.
 
 ## Basic Usage
 
@@ -4210,7 +4211,8 @@ element.innerText = 'VANDALIZED_TEXT';  // everything else
 Breaks click handling while the element still looks and accepts clicks normally:
 
 ```javascript
-// "logic_sabotage": a capture-phase listener runs before the app's handlers
+// "logic_sabotage": a capture listener on the element runs before the element's
+// own bubble listeners and stops the event before it bubbles up to the app
 element.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -4223,7 +4225,7 @@ Two more strategies exist: `ui_shift` moves the element 100px right and down, an
 
 ## Mutation Score
 
-Vandal records one result per `async with` block. To score a test, run it once per mutation on a fresh page and count the killed mutants yourself:
+Vandal records one result per `async with` block. With the `Vandal` class, run the test once per mutation on a fresh page and count the killed mutants yourself, as below. If your tests run under pytest, `pytest --vandal` does this for you: it reruns each test once per mutant, prints a strength score, and `--vandal-min-score` can fail the run below a threshold.
 
 ```python
 import asyncio
@@ -4471,7 +4473,7 @@ How to structure a framework, run it in CI, plan the work, check data with SQL, 
 
 # Chapter 17: The Four-Layer Architecture
 
-**What you’ll learn** Separate test intent, domain actions, page mechanics, and infrastructure.
+**What you’ll learn** Separate test intent, business actions, core element helpers, and infrastructure.
 
 **Put it to work** Change a locator without editing the business assertion or fixture lifecycle.
 
@@ -4600,7 +4602,7 @@ Pytest does not have a built-in `--browser=` option. Pass the browser name in an
 
 GitHub-hosted Ubuntu runners include Google Chrome, Firefox, and Microsoft Edge. The `ubuntu-latest` label can move to a new Ubuntu version, so print the browser version in the log and check the [hosted runner software list](https://github.com/actions/runner-images) when a failure appears only in CI. Current Selenium includes Selenium Manager, which can resolve a matching driver. You still need the browser itself on the runner.
 
-The workflow below uses `actions/checkout@v4`, `actions/setup-python@v5`, and `actions/upload-artifact@v4`, the same major versions used in the Waitless repository. It installs from `requirements.lock.txt`, which the setup guide already asks you to commit. `if: always()` uploads reports even when the tests fail. Create the report directories first, because pytest will not write a JUnit file into a missing folder.
+The workflow below uses `actions/checkout@v4`, `actions/setup-python@v5`, and `actions/upload-artifact@v4`, the same major versions used in the Waitless repository. It installs from `requirements.lock.txt`, which the setup guide already asks you to commit. `if: always()` uploads reports even when the tests fail. pytest creates the folder for the JUnit file itself. Create the screenshots folder first, because your own screenshot code may not create it.
 
 ```yaml
 name: Browser tests
@@ -4721,7 +4723,7 @@ The hours and multipliers below are starting points. Replace them with numbers f
 
 ### Step 1: Decompose Ruthlessly
 
-**Rule of thumb**: If a task can't be broken into pieces under 4 hours, you don't understand it yet.
+**Rule of thumb**: If a task can't be broken into pieces of 4 hours or less, you don't understand it yet.
 
 ```
 BAD:  "Automate login flow" (1 vague task)
@@ -4803,7 +4805,7 @@ Here are the five steps applied to one feature: checkout with a discount code. T
 
 **Step 5: buffer.** You have built something similar, so use medium confidence (+40%): 27.6 × 1.4 = 38.6, so about 39 hours.
 
-Give the result as a range, not one number: **28 to 39 hours**, about four to five working days for one person. Say what it assumes: the seeding API works, the form needs no special test data, and the test environment is free that week. If one of those turns out false, re-estimate instead of quietly working late.
+Give the result as a range, not one number: **28 to 39 hours**, about three and a half to five working days for one person. Say what it assumes: the seeding API works, the form needs no special test data, and the test environment is free that week. If one of those turns out false, re-estimate instead of quietly working late.
 
 ## 🔧 Put It to Work: Compare With What Really Happened
 
@@ -4820,7 +4822,7 @@ An estimate only gets better if you check it. Keep a small table next to the pla
 
 When the feature is done, divide the total actual hours by the estimate before the buffer (28 hours in this example). A ratio near 1.0 means your base hours and multipliers fit your team. If the ratio is far from 1.0 on several features in a row, change the base hours in Step 3 or the multipliers in Step 4, not just the buffer. The "why it differed" column tells you which one.
 
-**What you learned** Break work into tasks under four hours, pick a complexity, apply base hours and multipliers, add a buffer, give a range, and then compare it with what really happened.
+**What you learned** Break work into tasks of four hours or less, pick a complexity, apply base hours and multipliers, add a buffer, give a range, and then compare it with what really happened.
 
 **Try this** Estimate your next feature with the five steps and fill in the comparison table as you work.
 
@@ -5482,7 +5484,7 @@ Every published tool in this book is open source. Install names, source code and
 | `ElementNotInteractableException` | Element exists but can't be interacted with | Wait for clickable, check visibility |
 | `StaleElementReferenceException` | Element was removed/re-added to DOM | Re-find element, use Waitless |
 | `TimeoutException` | Wait condition not met in time | Increase timeout, check condition |
-| `WebDriverException` | Browser/driver communication issue | Restart browser, check versions |
+| `WebDriverException` | Base class for Selenium errors, often a browser or driver problem | Restart browser, check versions |
 | `ElementClickInterceptedException` | Another element covering target | Scroll to view, wait for overlays |
 
 ---
