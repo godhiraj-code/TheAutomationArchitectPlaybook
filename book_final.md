@@ -3075,8 +3075,8 @@ Not the internal `<button>`, `<style>`, or implementation details.
 | Framework | Shadow DOM Usage | Difficulty for Testing |
 | --- | --- | --- |
 | **Salesforce Lightning (LWC)** | Extensive, deeply nested | Very High |
-| **Angular Material** | Optional per component | Medium |
-| **Ionic Framework** | All components | High |
+| **Angular Material** | Not by default (Material components use `ViewEncapsulation.None`; a component only gets a shadow root if it sets `ViewEncapsulation.ShadowDom`) | Medium |
+| **Ionic Framework** | Most components (a few, such as `ion-input`, use scoped styles instead) | High |
 | **Shoelace** | All components | High |
 | **SAP UI5** (Web Components) | All components | High |
 | **Vaadin** | All components | High |
@@ -3110,12 +3110,12 @@ except NoSuchElementException:
 # Selenium 4 can open an open shadow root, one level at a time:
 app = driver.find_element(By.CSS_SELECTOR, "my-app")
 panel = app.shadow_root.find_element(By.CSS_SELECTOR, "settings-panel")
-save = panel.shadow_root.find_element(By.CSS_SELECTOR, "button#save")  # CSS only, no XPath
+save = panel.shadow_root.find_element(By.CSS_SELECTOR, "button#save")  # CSS works; XPath does not
 save.click()
 driver.quit()
 ```
 
-The shadow boundary is not a hard wall: Selenium 4 has `element.shadow_root` for open shadow roots. But you must walk it one level at a time, only CSS selectors work inside a root, and closed roots are out of reach.
+The shadow boundary is not a hard wall: Selenium 4 has `element.shadow_root` for open shadow roots. But you must walk it one level at a time, XPath and tag name lookups do not work inside a root (in Chrome, CSS, ID and link text lookups do), and closed roots are out of reach.
 
 ### 🔍 Deep Dive: Why Standard Queries Fail
 
@@ -3449,7 +3449,7 @@ Selector maintenance can consume substantial engineering time. Track locator-rel
 driver.find_element(By.ID, "input_email_7x9k2")  # Changes each build
 
 # ⚠️ SOMEWHAT BRITTLE: Generated class names
-driver.find_element(By.CSS_SELECTOR, ".MuiInput-root-1234")  # Material-UI
+driver.find_element(By.CSS_SELECTOR, ".css-1x5jdmq")  # MUI v5 generated class, can change when styles or versions change
 
 # ✓ BETTER: data-testid (but requires dev cooperation)
 driver.find_element(By.CSS_SELECTOR, "[data-testid='email-input']")
@@ -3667,7 +3667,7 @@ response = "The capital city of France is Paris."
 asserter.assert_similarity(
     response,
     "Paris is France's capital",
-    min_score=0.75  # cosine similarity between 0 and 1
+    min_score=0.75  # cosine similarity: -1 to 1, usually 0 to 1 for sentences
 )
 
 # Get the raw score when you want to log it or set your own rule
@@ -3726,15 +3726,15 @@ driver.quit()
 
 Every call to OpenAI/Claude/Gemini costs money and time:
 
-- API calls: $0.01-$0.10 per request 
-- Latency: 500ms-5000ms per call 
-- Rate limits: 60-1000 requests/minute 
+- API calls: for example $0.01 to $0.10 per request (prices depend on the model and prompt size, so check your provider's pricing page) 
+- Latency: often from under a second to several seconds per call 
+- Rate limits: set by each provider, per account and model 
 - Non-determinism: Same prompt, different results
 
 For a CI pipeline running 50+ tests 10 times daily:
 
 - **500+ API calls/day** 
-- **$50-500/month just for testing** 
+- **$150 to $1,500 a month just for testing, at those example prices** 
 - **Flaky tests from non-determinism**
 
 ## Pytest-MockLLM Solution
@@ -3777,7 +3777,7 @@ Queue several answers with `add_responses("first", "second")`. Run with `pytest 
 
 ### 🔍 Deep Dive: How Recorded Requests Are Matched
 
-When replaying a recording, Pytest-MockLLM must decide which saved response belongs to a request. It matches on the provider, HTTP method, URL and the full JSON request body (model, messages, tools, sampling parameters and the stream flag). Credential headers do not affect matching. There is no fuzzy matching: if you change a prompt, even cosmetically, the request no longer matches and you record that interaction again. This keeps replays honest, because a test can never pass on an answer recorded for a different prompt.
+When replaying a recording, Pytest-MockLLM must decide which saved response belongs to a request. It matches on the provider, HTTP method, URL and the full JSON request body (model, messages, tools, sampling parameters and the stream flag). Credential headers do not affect matching. A few headers that change what the API does do count: `content-type`, `anthropic-version`, `anthropic-beta`, `openai-beta`, `openai-organization` and `openai-project`. Recording and replay cover the OpenAI chat completions, responses and embeddings endpoints and the Anthropic messages endpoint. There is no fuzzy matching: if you change a prompt, even cosmetically, the request no longer matches and you record that interaction again. This keeps replays honest, because a test can never pass on an answer recorded for a different prompt.
 
 ---
 

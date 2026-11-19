@@ -3127,12 +3127,12 @@ document.querySelector('.inner-btn');  // Returns null!
             </tr>
             <tr>
                 <td><strong>Angular Material</strong></td>
-                <td>Optional per component</td>
+                <td>Not by default (Material components use <code>ViewEncapsulation.None</code>; a component only gets a shadow root if it sets <code>ViewEncapsulation.ShadowDom</code>)</td>
                 <td>Medium</td>
             </tr>
             <tr>
                 <td><strong>Ionic Framework</strong></td>
-                <td>All components</td>
+                <td>Most components (a few, such as <code>ion-input</code>, use scoped styles instead)</td>
                 <td>High</td>
             </tr>
             <tr>
@@ -3182,11 +3182,11 @@ except NoSuchElementException:
 # Selenium 4 can open an open shadow root, one level at a time:
 app = driver.find_element(By.CSS_SELECTOR, "my-app")
 panel = app.shadow_root.find_element(By.CSS_SELECTOR, "settings-panel")
-save = panel.shadow_root.find_element(By.CSS_SELECTOR, "button#save")  # CSS only, no XPath
+save = panel.shadow_root.find_element(By.CSS_SELECTOR, "button#save")  # CSS works; XPath does not
 save.click()
 driver.quit()
 </code></pre>
-    <p>The shadow boundary is not a hard wall: Selenium 4 has <code>element.shadow_root</code> for open shadow roots. But you must walk it one level at a time, only CSS selectors work inside a root, and closed roots are out of reach.</p>
+    <p>The shadow boundary is not a hard wall: Selenium 4 has <code>element.shadow_root</code> for open shadow roots. But you must walk it one level at a time, XPath and tag name lookups do not work inside a root (in Chrome, CSS, ID and link text lookups do), and closed roots are out of reach.</p>
     <h3 id="deep-dive-why-standard-queries-fail">🔍 Deep Dive: Why Standard Queries Fail</h3>
     <pre><code class="language-javascript">// A search from the document does not enter shadow roots:
 document.querySelector("button#save")  // Returns null
@@ -3454,7 +3454,7 @@ def test_missing_target_fails_within_the_timeout(driver):
 driver.find_element(By.ID, "input_email_7x9k2")  # Changes each build
 
 # ⚠️ SOMEWHAT BRITTLE: Generated class names
-driver.find_element(By.CSS_SELECTOR, ".MuiInput-root-1234")  # Material-UI
+driver.find_element(By.CSS_SELECTOR, ".css-1x5jdmq")  # MUI v5 generated class, can change when styles or versions change
 
 # ✓ BETTER: data-testid (but requires dev cooperation)
 driver.find_element(By.CSS_SELECTOR, "[data-testid='email-input']")
@@ -3628,7 +3628,7 @@ response = "The capital city of France is Paris."
 asserter.assert_similarity(
     response,
     "Paris is France's capital",
-    min_score=0.75  # cosine similarity between 0 and 1
+    min_score=0.75  # cosine similarity: -1 to 1, usually 0 to 1 for sentences
 )
 
 # Get the raw score when you want to log it or set your own rule
@@ -3673,15 +3673,15 @@ driver.quit()
     <h2 id="the-problem-with-testing-llm-powered-features">The Problem with Testing LLM-Powered Features</h2>
     <p>Every call to OpenAI/Claude/Gemini costs money and time:</p>
     <ul>
-        <li>API calls: $0.01-$0.10 per request</li>
-        <li>Latency: 500ms-5000ms per call</li>
-        <li>Rate limits: 60-1000 requests/minute</li>
+        <li>API calls: for example $0.01 to $0.10 per request (prices depend on the model and prompt size, so check your provider's pricing page)</li>
+        <li>Latency: often from under a second to several seconds per call</li>
+        <li>Rate limits: set by each provider, per account and model</li>
         <li>Non-determinism: Same prompt, different results</li>
     </ul>
     <p>For a CI pipeline running 50+ tests 10 times daily:</p>
     <ul>
         <li><strong>500+ API calls/day</strong></li>
-        <li><strong>$50-500/month just for testing</strong></li>
+        <li><strong>$150 to $1,500 a month just for testing, at those example prices</strong></li>
         <li><strong>Flaky tests from non-determinism</strong></li>
     </ul>
     <h2 id="pytest-mockllm-solution">Pytest-MockLLM Solution</h2>
@@ -3719,7 +3719,11 @@ def test_chatbot_greeting(mock_openai):
     <h3 id="deep-dive-request-normalization">🔍 Deep Dive: How Recorded Requests Are Matched</h3>
     <p>When replaying a recording, Pytest-MockLLM must decide which saved response belongs to a request. It matches
         on the provider, HTTP method, URL and the full JSON request body (model, messages, tools, sampling parameters
-        and the stream flag). Credential headers do not affect matching. There is no fuzzy matching: if you change a
+        and the stream flag). Credential headers do not affect matching. A few headers that change what the API does
+        do count: <code>content-type</code>, <code>anthropic-version</code>, <code>anthropic-beta</code>,
+        <code>openai-beta</code>, <code>openai-organization</code> and <code>openai-project</code>. Recording and
+        replay cover the OpenAI chat completions, responses and embeddings endpoints and the Anthropic messages
+        endpoint. There is no fuzzy matching: if you change a
         prompt, even cosmetically, the request no longer matches and you record that interaction again. This keeps
         replays honest, because a test can never pass on an answer recorded for a different prompt.</p>
     <hr>
