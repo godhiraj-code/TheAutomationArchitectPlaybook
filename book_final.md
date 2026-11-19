@@ -115,7 +115,7 @@ This part covers how browsers work, why tests flake, how to wait for the right s
 
 Many browser automation failures become easier to diagnose when you understand rendering, events, and element lifecycles. Other failures come from test data, services, infrastructure, or the test itself.
 
-- `ElementNotInteractableException` — The browser says the element isn't ready 
+- `ElementNotInteractableException` — The element exists but can't be used right now, for example because it is hidden or disabled 
 - `StaleElementReferenceException` — The DOM changed while you were looking at it 
 - `TimeoutException` — Something took longer than expected 
 - Element found but click doesn't work — Event handlers aren't attached yet
@@ -155,11 +155,6 @@ Modern browsers like Chrome are not a single program—they're a **collection of
 │  │    V8 JavaScript     │  │          │  │    V8 JavaScript     │  │
 │  │    Engine            │  │          │  │    Engine            │  │
 │  └──────────────────────┘  │          │  └──────────────────────┘  │
-    🔍 Deep Dive: V8 Bindings & The DOM Bridge
-    JavaScript doesn't "own" the DOM. The DOM lives in the C++ core of the browser engine (Blink). When you call
-        document.getElementById(), you're crossing a "bridge" from the JavaScript world (V8) to the C++
-        world. This context switching is expensive. In high-frequency automation, hundreds of these crossings occur
-        every second, creating a performance bottleneck that can look like network latency.
 └────────────────────────────┘          └────────────────────────────┘
              │
              ▼
@@ -171,19 +166,27 @@ Modern browsers like Chrome are not a single program—they're a **collection of
 └────────────────────────────┘
 ```
 
+*Both diagrams are illustrative. They show one renderer per tab to keep the picture simple, but Chrome does not always split work that way. Chrome can also run networking and storage as separate service processes, which the diagrams leave out.*
+
+**🔍 Deep Dive: V8 Bindings & The DOM Bridge**
+
+JavaScript doesn't "own" the DOM. The DOM lives in the C++ core of the browser engine (Blink). When you call `document.getElementById()`, you're crossing a "bridge" from the JavaScript world (V8) to the C++ world. Each crossing has a small cost. Code that crosses it many times in a tight loop can become slow, and that slowness can look like network latency.
+
 ### What This Means for Automation
 
-**Key Insight #1: Each tab is isolated**
+**Key Insight #1: A new tab is not a clean session**
 
-When you open a new browser window or tab in Selenium, you're potentially creating a new renderer process. Cookies, localStorage, and JavaScript state are shared per-origin, but memory and execution are isolated.
+Chrome does not assign exactly one renderer process per tab. Tabs can share a renderer, and frames in one tab can run in different renderers. A renderer crash affects the tabs and frames using that process.
+
+Opening another tab does not guarantee a clean test session. Tabs in one Selenium session use the same browser profile, so they share the same cookies and localStorage. JavaScript variables are not shared between tabs. One page can reach another tab's JavaScript only in special cases, such as when one page opened the other with `window.open` and both are on the same origin. See Chromium's [architecture notes](https://www.chromium.org/developers/design-documents/multi-process-architecture/) and [process model notes](https://chromium.googlesource.com/chromium/src/+/main/docs/process_model_and_site_isolation.md).
 
 **Key Insight #2: JavaScript runs in the renderer process**
 
 When you call `driver.execute_script()`, your JavaScript runs in the renderer process—the same place the website's JavaScript runs. This is why you can access `document`, `window`, and the DOM directly.
 
-**Key Insight #3: Network requests go through the browser process**
+**Key Insight #3: Network requests are handled outside the renderer**
 
-This is why some bot detection techniques work—they can observe network behavior at the browser level, not just at the page level.
+The page's renderer does not make network connections itself. The browser does, and in Chrome its network service does the work. This is one reason some bot detection works: it can look at how the browser itself makes requests, not just at what the page's JavaScript does.
 
 ---
 
@@ -197,7 +200,7 @@ When you navigate to a URL, here's what happens inside the browser:
 URL Entered → DNS Lookup → TCP Connection → TLS Handshake → HTTP Request → Response
 ```
 
-The browser process handles this. The response (HTML, CSS, JS, images) streams back.
+The browser handles this outside the renderer. In Chrome, its network service does the work. The response (HTML, CSS, JS, images) streams back.
 
 ### Stage 2: HTML Parsing and DOM Construction
 
@@ -249,7 +252,7 @@ StyleSheetList
 
 ### Stage 4: The Render Tree
 
-The DOM and CSSOM combine to create the **Render Tree**—only visible elements are included:
+The DOM and CSSOM combine to create the **Render Tree**. Elements with `display: none` are left out:
 
 ```
 RenderTree
@@ -261,7 +264,7 @@ RenderTree
 
 **💡 Key Insight: Elements with `display: none` are NOT in the render tree**
 
-This is why `element.is_displayed()` returns `False` for hidden elements—they literally don't exist in the visual representation.
+Elements with `visibility: hidden` stay in the render tree, because they still take up space. Selenium's `element.is_displayed()` does not read the render tree. It runs its own visibility check, which returns `False` for both `display: none` and `visibility: hidden`.
 
 ### Stage 5: Layout (Reflow)
 
@@ -289,7 +292,7 @@ Finally, the browser:
 
 ### 🔍 Deep Dive: The Compositor vs. Main Thread
 
-A common automation mystery: *The element is visible, but the click fails.* This often happens because of thread contention. The **Compositor Thread** (which handles scrolling and some animations) is separate from the **Main Thread** (which handles JS and Layout). If the Main Thread is blocked by a long-running script, the browser can still *scroll* (compositor), but it cannot *process a click* (main thread). Automation stability requires the Main Thread to be "idle."
+A common automation mystery: *The element is visible, but the click fails.* This often happens because of thread contention. The **Compositor Thread** (which handles scrolling and some animations) is separate from the **Main Thread** (which handles JS and Layout). If the Main Thread is blocked by a long-running script, the browser can still *scroll* (compositor), but it cannot *handle a click* until the main thread is free. The click waits in a queue and runs late. Automation stability requires the Main Thread to be "idle."
 
 ---
 
@@ -355,7 +358,7 @@ When your Selenium test clicks the button:
 
 The rest of the handler (`updateUI()`) only runs after the response arrives, when the awaited Promise resolves and its continuation is queued as a microtask.
 
-This is the #1 cause of flaky tests: **assuming synchronous completion**.
+This is one of the most common causes of flaky tests: **assuming synchronous completion**. In a study of 161 fixed flaky tests in open source projects, 45% were "async wait" problems, where the test did not wait properly for asynchronous work ([Luo et al., 2014](https://mir.cs.illinois.edu/lamyaa/publications/fse14.pdf)).
 
 ### The Solution: Proper Waiting
 
@@ -409,7 +412,7 @@ WebDriverWait(driver, 10).until(
 
 | Event | What's Ready | What's NOT Ready |
 | --- | --- | --- |
-| `DOMContentLoaded` | HTML parsed, DOM built | CSS, images, fonts, external JS |
+| `DOMContentLoaded` | HTML parsed, DOM built, deferred and module scripts run | Images, fonts, async scripts, and possibly some stylesheets |
 | `load` | All initial resources | Lazy-loaded content, AJAX data |
 | (no event) | Everything | — |
 
@@ -432,12 +435,13 @@ WebDriverWait(driver, 20).until(
     EC.presence_of_element_located((By.ID, "main-content"))
 )
 
-# Strategy 2: Wait for network idle (using JavaScript)
+# Strategy 2: Wait for the load event, then a short fixed pause.
+# This does not detect network idle; requests started later are missed.
 driver.get("https://example.com")
 driver.execute_script("""
     return new Promise(resolve => {
         if (document.readyState === 'complete') {
-            setTimeout(resolve, 500);  // Small buffer for AJAX
+            setTimeout(resolve, 500);  // Fixed pause, not a network check
         } else {
             window.addEventListener('load', () => setTimeout(resolve, 500));
         }
@@ -461,8 +465,9 @@ Understanding this communication protocol helps debug "weird" failures.
 ```
 ┌─────────────────┐     HTTP/REST      ┌─────────────────┐
 │                 │─────────────────────│                 │
-│   Your Test     │   {"using": "id",  │   ChromeDriver  │
-│   (Python)      │    "value": "btn"} │   (Executable)  │
+│   Your Test     │  {"using":          │   ChromeDriver  │
+│   (Python)      │   "css selector",   │   (Executable)  │
+│                 │    "value": "#btn"} │                 │
 │                 │◄────────────────────│                 │
 └─────────────────┘   {"value": {...}} └────────┬────────┘
                                                 │
@@ -499,7 +504,7 @@ That `"abc123"` is a **reference ID**. If the DOM element is removed and re-adde
 
 ## The Chrome DevTools Protocol (CDP)
 
-Selenium 4 introduced direct CDP access, unlocking powerful capabilities:
+Selenium can send CDP commands straight to Chrome. Selenium 3 already had `execute_cdp_cmd` for Chrome, and Selenium 4 made CDP much easier to use with typed DevTools support and WebDriver BiDi:
 
 ```python
 # Traditional WebDriver (limited)
@@ -517,17 +522,18 @@ driver.get("https://example.com")  # This request now carries the extra header
 
 | Domain | Capabilities |
 | --- | --- |
-| `Network` | Intercept requests, mock responses, throttle bandwidth |
+| `Fetch` | Intercept requests, mock responses |
+| `Network` | Monitor requests, add headers, throttle bandwidth |
 | `DOM` | Query/modify DOM, track mutations |
 | `Performance` | Collect metrics, trace execution |
-| `Console` | Capture console.log output |
+| `Runtime` and `Log` | Capture console.log output and browser log entries |
 | `Emulation` | Spoof device, geolocation, timezone |
 
 ---
 
 ### 🔍 Deep Dive: The Hidden Latency - Cost of a WebDriver Command
 
-Every Selenium command (e.g., `element.is_displayed()`) is an out-of-process network call. Even on localhost, there is overhead for serialization, network transmission, and deserialization. When you put a `find_element` call inside a tight loop, you're not just waiting for the browser; you're also paying a "tax" of about 5-10ms per call for the communication protocol itself. This is why batching interactions in JavaScript (using `execute_script`) is often much faster for complex tasks.
+Every Selenium command (e.g., `element.is_displayed()`) is an out-of-process network call. Even on localhost, there is overhead for serialization, network transmission, and deserialization. When you put a `find_element` call inside a tight loop, you're not just waiting for the browser; you're also paying a "tax" for the communication protocol itself, often a few milliseconds per call. Measure it on your own setup. This is why batching interactions in JavaScript (using `execute_script`) is often much faster for complex tasks.
 
 ---
 
@@ -594,7 +600,7 @@ The DOM size is what example.com returned when this was written. Your number wil
 
 | Concept | Key Takeaway |
 | --- | --- |
-| Multi-Process Architecture | Each tab runs in isolation; crashes don't affect other tabs |
+| Multi-Process Architecture | Tabs can share a renderer and one tab can use several, so a new tab is not a clean session |
 | Rendering Pipeline | HTML → DOM → CSSOM → Render Tree → Layout → Paint |
 | Event Loop | Single-threaded but async; explains why clicks don't wait |
 | Page Load Events | `load` event fires before AJAX content is ready |
@@ -634,11 +640,11 @@ When developers stop trusting test results, they stop looking at them. The autom
 
 ### 💡 Key Insight: Flakiness Is a Symptom, Not a Disease
 
-Every flaky test has a **deterministic root cause**. The test isn't "randomly" failing—it's failing because of specific conditions that aren't always present. Your job is to find those conditions.
+Most flaky tests have a **root cause you can find**. The test isn't failing at random. It fails because of specific conditions that aren't always present. Your job is to find those conditions.
 
 ### 🔍 Deep Dive: The Micro-Stutter - GC and JIT Interference
 
-Sometimes the browser itself stops responding for a few milliseconds. This happens during **Garbage Collection (GC)**—when V8 pauses execution to clean up memory—or **Just-In-Time (JIT) Compilation**. These "micro-stutters" are nearly invisible to humans but can cause a race condition to trigger in automation if the browser pauses exactly when a click is being sent. Stable automation builds in a small buffer for these unavoidable internal pauses.
+Sometimes the browser pauses its own work for a moment, for example during **Garbage Collection (GC)**, when V8 cleans up memory, or during **Just-In-Time (JIT) Compilation**. These "micro-stutters" are usually short and are rarely the real cause of a flaky test, but a pause at an unlucky moment can delay the page. Don't add a fixed buffer for them. Wait for a real condition instead, so a short pause only makes the wait a little longer.
 
 ---
 
@@ -679,7 +685,7 @@ The page is still loading when the click executes. The element might:
 </script>
 ```
 
-The button is in the DOM immediately, but the event listener is only attached when the `<script>` executes. If your test clicks before the script runs, nothing happens!
+The button is in the DOM immediately, but the event listener is only attached when the `<script>` executes. In this small example the script runs right after the button is parsed, so the gap is tiny. In real apps the gap is bigger: handlers are often attached by a large bundle loaded with `defer` or `async`, or when a framework hydrates the page. If your test clicks before that code runs, nothing happens!
 
 **Solution Pattern:**
 
@@ -692,6 +698,8 @@ wait = WebDriverWait(driver, 10)
 button = wait.until(EC.element_to_be_clickable((By.ID, "submit-btn")))
 button.click()
 ```
+
+This helps, but `element_to_be_clickable` only checks that the element is visible and enabled. It does not check that event handlers are attached or that nothing covers the element. For those, wait for a signal from the app, such as a ready flag or a loading overlay that has gone away.
 
 ---
 
@@ -729,7 +737,7 @@ element = wait.until(EC.presence_of_element_located((By.ID, "data-loaded")))
 
 ### Category 3: Animation Interference
 
-CSS transitions and JavaScript animations don't block Selenium. The test clicks where the button *will be*, not where it *is*.
+CSS transitions and JavaScript animations don't block Selenium. Selenium clicks where the element is at that moment. During an animation that can be the wrong spot, or another element can get the click.
 
 **Example:**
 
@@ -747,11 +755,11 @@ The modal slides in over 300ms. Selenium doesn't wait for CSS transitions.
 
 **🔍 Deep Dive: How Animations Break Clicks**
 
-1. Test finds element at position (100, 500) - where modal WILL be 
+1. Test finds a button in the modal while the modal is still sliding in 
 2. Browser reports element as "visible" because `opacity > 0` and `display != none` 
-3. Test sends click command to coordinates (100, 500) 
-4. Animation is still in progress - element is actually at (100, 350) 
-5. Click hits wrong element or nothing
+3. Selenium works out the button's center at that moment, say (100, 350), and clicks there 
+4. The animation keeps going, so the point may now be over another element, or over the button's old position 
+5. Click hits the wrong element or nothing, or Selenium raises `ElementClickInterceptedException`
 
 **Solution Pattern:**
 
@@ -847,19 +855,22 @@ def test_discount_during_sale_period():
 **Solution Patterns:**
 
 ```python
-# 1. Request dedicated CI resources
+# 1. Set a job timeout and pass Chrome flags that help in containers
 # .github/workflows/test.yml
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      # Chrome does not read this variable. Your driver fixture must read it
+      # and add each flag with options.add_argument().
       CHROME_ARGS: "--disable-dev-shm-usage --no-sandbox"
 
 # 2. Limit parallel browser instances
 # pytest.ini
 [pytest]
 # Max 4 parallel workers (pytest.ini comments must be on their own line)
+# -n needs the pytest-xdist plugin: pip install pytest-xdist
 addopts = -n 4
 
 # 3. Add resource monitoring
@@ -911,8 +922,8 @@ element.click()
 
 **Remaining Problems:**
 
-- Doesn't wait for network calls to complete 
-- Doesn't wait for animations to finish 
+- The built-in conditions don't wait for network calls to complete 
+- The built-in conditions don't wait for animations to finish 
 - Doesn't detect JavaScript-driven readiness 
 - Requires explicit waits everywhere in code
 
@@ -944,10 +955,10 @@ Before jumping to solutions, you need to diagnose the specific cause of flakines
 
 ### Tool 1: Retry Analysis
 
-Run the flaky test 50+ times and analyze patterns:
+Run the flaky test 50+ times and analyze patterns. Save these hooks as `conftest.py` next to your tests. pytest loads `conftest.py` on its own. A file with another name, such as `pytest_flaky_tracker.py`, only runs if you pass it with `-p pytest_flaky_tracker`.
 
 ```python
-# pytest_flaky_tracker.py
+# conftest.py
 import pytest
 import json
 from datetime import datetime
@@ -965,7 +976,8 @@ def pytest_runtest_makereport(item, call):
             "timestamp": datetime.now().isoformat(),
             "passed": report.passed,
             "duration": report.duration,
-            "error": str(report.longrepr) if report.failed else None
+            "error": str(report.longrepr) if report.failed else None,
+            "error_type": call.excinfo.typename if report.failed and call.excinfo else None,
         }
 
         # Append to results file
@@ -979,6 +991,27 @@ def pytest_runtest_makereport(item, call):
 
         with open(RESULTS_FILE, "w") as f:
             json.dump(data, f, indent=2)
+```
+
+Then count failures per test and per error type:
+
+```python
+# analyze_flaky.py
+import json
+from collections import Counter, defaultdict
+
+with open("flaky_analysis.json") as f:
+    runs = json.load(f)
+
+by_test = defaultdict(list)
+for run in runs:
+    by_test[run["test"]].append(run)
+
+for test, results in by_test.items():
+    failed = [r for r in results if not r["passed"]]
+    print(f"{test}: {len(failed)} of {len(results)} runs failed")
+    for error_type, count in Counter(r["error_type"] for r in failed).most_common():
+        print(f"  {count}x {error_type}")
 ```
 
 Run analysis:
@@ -996,8 +1029,9 @@ def driver(request):
     driver = webdriver.Chrome()
     yield driver
 
-    # Capture screenshot on failure
-    if request.node.rep_call.failed:
+    # Capture screenshot on failure. rep_call is missing if setup failed.
+    rep_call = getattr(request.node, "rep_call", None)
+    if rep_call is not None and rep_call.failed:
         screenshot_dir = Path("screenshots")
         screenshot_dir.mkdir(exist_ok=True)
 
@@ -1103,9 +1137,9 @@ The default `normal` mode waits for the DOM and the network. `strict` mode also 
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   WAITLESS WRAPPER                               │
-│  • Intercepts all WebDriver commands                            │
+│  • Wraps navigation, element lookup and element actions         │
 │  • Injects stability checks before each action                  │
-│  • No code changes required in your tests                       │
+│  • Only the driver setup changes in your tests                  │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -1151,7 +1185,7 @@ print(driver.find_element(By.CSS_SELECTOR, "#results .result").text)  # waits fo
 driver.quit()
 ```
 
-**That's it.** No explicit waits. No sleep statements. The driver automatically waits for stability before every action. **New in v0.3.0+:** Waitless also observes **open Shadow DOM** roots, so changes inside web components count too. Closed shadow roots cannot be observed.
+**That's it.** No explicit waits. No sleep statements. The driver automatically waits for stability before every action. **New in v0.3.1:** Waitless also observes **open Shadow DOM** roots, so changes inside web components count too. Closed shadow roots cannot be observed.
 
 ---
 
@@ -1182,9 +1216,9 @@ The `MutationObserver` API watches for changes to the DOM tree:
 })();
 ```
 
-**Stability Criteria:** No mutations for 100ms (configurable).
+**Stability Criteria:** The DOM has been quiet for 100ms and the mutation rate is at or below 50 per second. Both are configurable, with `dom_settle_time` and `mutation_rate_threshold`.
 
-**Why 100ms?** React, Vue, and Angular typically batch multiple DOM updates within a single animation frame (16ms). The 100ms buffer ensures all related updates have completed.
+**Why 100ms?** Frameworks such as React, Vue, and Angular often apply a burst of related DOM updates close together, usually within a frame or two (a frame is about 16ms at 60 frames per second). A 100ms quiet period gives most of those bursts time to finish. If your app updates in slower steps, raise `dom_settle_time`.
 
 ### Component 2: Network Interceptor
 
@@ -1331,7 +1365,7 @@ finally:
 **Example output (shortened):**
 
 ```
-UI did not stabilize within 3.0s. Blocking: ['pending_requests']
+UI did not stabilize within 2.9999821169985808s. Run 'waitless doctor' for detailed analysis. Blocking: ['pending_requests']
 
 | SIGNAL STATUS:                                                   |
 |   [OK] [M] DOM_MUTATIONS: Mutation rate: 0/sec (threshold: 50/se |
@@ -1343,7 +1377,7 @@ UI did not stabilize within 3.0s. Blocking: ['pending_requests']
 |      config = StabilizationConfig(network_idle_threshold=2)      |
 ```
 
-This tells you the page wasn't stable because a request was still pending. Save the diagnostics to a JSON file and run `python -m waitless doctor --file diagnostics.json` to get the same report from the command line.
+The time in the first line is the measured wait, so its exact digits change from run to run. This tells you the page wasn't stable because a request was still pending. Save the diagnostics to a JSON file and run `python -m waitless doctor --file diagnostics.json` to get the same report from the command line.
 
 ---
 
@@ -1507,7 +1541,7 @@ A user sees pixels, not DOM elements. Visual testing validates what users actual
 | Text color matches background | ✅ PASS (text exists in DOM) | "I can't read anything!" |
 | Modal renders behind overlay | ✅ PASS (elements exist) | "The site is frozen!" |
 | Font failed to load | ✅ PASS (text displays) | "This looks unprofessional" |
-| Mobile layout broken | ✅ PASS (desktop tested) | 50% of users can't use site |
+| Mobile layout broken | ✅ PASS (desktop tested) | Mobile users can't use the site |
 
 ---
 
@@ -1540,7 +1574,7 @@ Two images can be:
 - **Pixel-different but visually identical** (anti-aliasing variations) 
 - **Pixel-similar but visually different** (subtle color shift across entire page)
 
-We need algorithms that match **human perception**, not bit comparison.
+We need algorithms that are closer to **human perception**, not bit comparison.
 
 ---
 
@@ -1596,7 +1630,7 @@ Where α, β, γ are weights (typically all 1)
 │                      │                                          │
 │                      ▼                                          │
 │              SSIM Score: 0.97                                   │
-│              (1.0 = identical, 0.0 = completely different)      │
+│              (1.0 = identical, lower = less similar)            │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -1606,7 +1640,7 @@ Where α, β, γ are weights (typically all 1)
 - Ignores minor anti-aliasing differences (structure preserved) 
 - Detects layout shifts (structure changed) 
 - Handles slight color variations gracefully 
-- Matches human perception of "same" vs "different"
+- Agrees with human judgement of "same" vs "different" more often than pixel diffs do
 
 ### Algorithm 2: Perceptual Hashing (pHash)
 
@@ -1627,12 +1661,13 @@ def perceptual_hash(image):
     # 4. Keep only low-frequency components (top-left 8x8)
     low_freq = dct[:8, :8]
 
-    # 5. Compute average (excluding the DC term, the top-left value)
+    # 5. Compute the median of the 64 values
+    #    (imagehash.phash, which Visual Guard uses, does this)
     values = low_freq.flatten()
-    avg = average(values[1:])
+    med = median(values)
 
-    # 6. Create hash: 1 if above average, 0 if below
-    hash = "".join("1" if v > avg else "0" for v in values)
+    # 6. Create hash: 1 if above the median, 0 if not
+    hash = "".join("1" if v > med else "0" for v in values)
 
     return hash  # 64-bit string like "1010110010..."
 ```
@@ -1646,7 +1681,8 @@ hash2 = "10101110..."  # Current (only 1 bit different)
 
 hamming_distance = 1  # Very similar!
 
-# Threshold: distance < 10 means same image
+# Small distances mean similar images. Visual Guard's own code notes
+# that 0 to 5 is very close. Tune the threshold on your own screenshots.
 ```
 
 ---
@@ -1780,22 +1816,29 @@ For other browsers, repeat the loop with `webdriver.Firefox()` or `webdriver.Edg
 
 ### Full-Page Screenshots
 
-For pages with scroll, give Visual Guard a full-page image. One simple way in Chrome is to make the window as tall as the page:
+For pages with scroll, give Visual Guard a full-page image. Making the window as tall as the page is not enough, because the window height includes the browser's own toolbars, so the bottom of the page gets cut off. In Chrome, ask the DevTools Protocol for the whole page instead:
 
 ```python
+import base64
+
 from selenium import webdriver
 from visual_guard import VisualTester
 
 driver = webdriver.Chrome()
+driver.set_window_size(1280, 900)
 driver.get("https://en.wikipedia.org/wiki/Software_testing")
 tester = VisualTester(baseline_dir="baselines", snapshot_dir="snapshots")
 
-# Make the window as tall as the page, then take one screenshot
-# (most reliable in headless mode, where the window is not limited by the screen)
-height = driver.execute_script("return document.documentElement.scrollHeight")
-driver.set_window_size(1280, height)
+# Ask Chrome for the whole page in one image (Chrome DevTools Protocol)
+size = driver.execute_cdp_cmd("Page.getLayoutMetrics", {})["cssContentSize"]
+shot = driver.execute_cdp_cmd("Page.captureScreenshot", {
+    "format": "png",
+    "captureBeyondViewport": True,
+    "clip": {"x": 0, "y": 0, "width": size["width"], "height": size["height"], "scale": 1},
+})
+png = base64.b64decode(shot["data"])
 
-passed = tester.assert_matches(driver, "long_page", method="phash", threshold=8)
+passed = tester.assert_matches(png, "long_page", method="phash", threshold=8)
 driver.quit()
 ```
 
@@ -1911,7 +1954,7 @@ if __name__ == "__main__":
 | --- | --- |
 | Functional vs Visual | Functional tests miss layout/style bugs |
 | Pixel comparison | Too brittle, constant false positives |
-| SSIM | Compares structure, matches human perception |
+| SSIM | Compares structure, closer to human perception |
 | pHash | Creates fingerprint, tolerates minor changes |
 | Region masking | Handle dynamic content areas |
 | Multi-browser | Test across browsers and viewports |
@@ -2008,7 +2051,7 @@ Before we can skip login, we need to understand what "being logged in" means at 
 
 | Storage Type | Persists After Close? | Accessible By | Size Limit |
 | --- | --- | --- | --- |
-| **Cookies** | Depends on `Expires` | Server + JavaScript | ~4KB per cookie |
+| **Cookies** | Depends on `Expires` | Server, plus JavaScript unless the cookie is `HttpOnly` | ~4KB per cookie |
 | **LocalStorage** | Yes | JavaScript only | ~5MB |
 | **SessionStorage** | No (tab-scoped) | JavaScript only | ~5MB |
 | **IndexedDB** | Yes | JavaScript only | Varies (large) |
@@ -2392,7 +2435,7 @@ driver.add_cookie({
 
 ### Pitfall 2: Secure Cookies on HTTP
 
-`Secure` cookies only work on HTTPS:
+`Secure` cookies only work on HTTPS, or on `localhost` and `127.0.0.1`, which Chrome treats as secure:
 
 ```python
 from selenium import webdriver
@@ -2511,7 +2554,7 @@ if __name__ == "__main__":
 
 ## Why Your Tests Get Blocked
 
-Modern bot detection has evolved far beyond simple CAPTCHAs. Services like Cloudflare, PerimeterX, DataDome, and Akamai use sophisticated fingerprinting that can detect standard Selenium in milliseconds.
+Modern bot detection has evolved far beyond simple CAPTCHAs. Services like Cloudflare, PerimeterX, DataDome, and Akamai use sophisticated fingerprinting that can detect standard Selenium quickly.
 
 ### The Detection Arsenal
 
@@ -2574,14 +2617,18 @@ console.log(navigator.webdriver);  // true = Selenium!
 const canvas = document.createElement('canvas');
 const gl = canvas.getContext('webgl');
 
+// gl.VENDOR and gl.RENDERER return generic values ("WebKit", "WebKit WebGL").
+// The real GPU strings come from the WEBGL_debug_renderer_info extension.
+const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+
 const fingerprint = {
-    vendor: gl.getParameter(gl.VENDOR),
-    renderer: gl.getParameter(gl.RENDERER),
+    vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : null,
+    renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : null,
     extensions: gl.getSupportedExtensions()
 };
 
-// Real browser: "Intel Inc." / "Intel Iris OpenGL Engine"
-// Headless: Often "Google SwiftShader" or empty
+// Real browser: the real GPU. Example values: "Google Inc. (Intel)" / "ANGLE (Intel, ...)"
+// Headless or a VM: often a software renderer such as SwiftShader
 ```
 
 ### Detection Vector 3: Canvas Fingerprint
@@ -2630,7 +2677,7 @@ driver = webdriver.Chrome()
 # ✗ Inhuman interaction speed (clicks happen instantly)
 # ✗ No mouse movement between clicks
 
-# Result: Blocked immediately
+# Result: often challenged or blocked, depending on the site's settings
 ```
 
 ---
@@ -2661,7 +2708,7 @@ document.addEventListener('keydown', e => {
 });
 
 // Analysis:
-// Human: Variable delays (50-300ms), some keys faster (home row)
+// Human: variable delays between keys, some keys faster than others
 // Bot: Perfect consistent timing, or all keys instant
 ```
 
@@ -2669,7 +2716,7 @@ document.addEventListener('keydown', e => {
 
 | Metric | Human | Bot |
 | --- | --- | --- |
-| Time on page before first click | 2-10 seconds | < 500ms |
+| Time on page before first click | Usually a few seconds | Often well under a second |
 | Mouse movement before click | Curved path | None or straight |
 | Click position | Slightly random | Exact center |
 | Double-click frequency | Occasional | Never or always |
@@ -2762,7 +2809,7 @@ with StealthBot(headless=False, success_criteria="Sign in") as bot:
 `StealthBot` keeps its options small. It does not expose fingerprint, typing or mouse settings; for anything more, use the SeleniumBase API through `bot.sb` or pass your own strategy objects (`driver_strategy`, `input_strategy`, `evasion_strategy`).
 
 ```python
-from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError
+from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError, SuccessCriteriaNotMetError
 
 bot = StealthBot(
     headless=False,                     # On Linux, False runs headed inside Xvfb
@@ -2777,6 +2824,9 @@ try:
 except ChallengeNotSolvedError:
     # The challenge was still there after the bounded retries
     raise
+except SuccessCriteriaNotMetError:
+    # No challenge left, but the success text never appeared
+    raise
 ```
 
 ---
@@ -2788,13 +2838,14 @@ except ChallengeNotSolvedError:
 Challenge handling runs inside `safe_get()` and before each `smart_click()`. Set `success_criteria` so the bot proves it reached the real page:
 
 ```python
-from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError
+from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError, SuccessCriteriaNotMetError
 
 with StealthBot(success_criteria="Welcome") as bot:
     try:
         # Waits for the page and tries to clear a challenge if one appears
         bot.safe_get("https://site-with-cloudflare.com")
-    except ChallengeNotSolvedError:
+    except (ChallengeNotSolvedError, SuccessCriteriaNotMetError):
+        # A challenge that stayed, or a page without the success text
         bot.save_screenshot("challenge_failed")
         raise
 
@@ -3024,8 +3075,8 @@ Not the internal `<button>`, `<style>`, or implementation details.
 | Framework | Shadow DOM Usage | Difficulty for Testing |
 | --- | --- | --- |
 | **Salesforce Lightning (LWC)** | Extensive, deeply nested | Very High |
-| **Angular Material** | Optional per component | Medium |
-| **Ionic Framework** | All components | High |
+| **Angular Material** | Not by default (Material components use `ViewEncapsulation.None`; a component only gets a shadow root if it sets `ViewEncapsulation.ShadowDom`) | Medium |
+| **Ionic Framework** | Most components (a few, such as `ion-input`, use scoped styles instead) | High |
 | **Shoelace** | All components | High |
 | **SAP UI5** (Web Components) | All components | High |
 | **Vaadin** | All components | High |
@@ -3059,12 +3110,12 @@ except NoSuchElementException:
 # Selenium 4 can open an open shadow root, one level at a time:
 app = driver.find_element(By.CSS_SELECTOR, "my-app")
 panel = app.shadow_root.find_element(By.CSS_SELECTOR, "settings-panel")
-save = panel.shadow_root.find_element(By.CSS_SELECTOR, "button#save")  # CSS only, no XPath
+save = panel.shadow_root.find_element(By.CSS_SELECTOR, "button#save")  # CSS works; XPath does not
 save.click()
 driver.quit()
 ```
 
-The shadow boundary is not a hard wall: Selenium 4 has `element.shadow_root` for open shadow roots. But you must walk it one level at a time, only CSS selectors work inside a root, and closed roots are out of reach.
+The shadow boundary is not a hard wall: Selenium 4 has `element.shadow_root` for open shadow roots. But you must walk it one level at a time, XPath and tag name lookups do not work inside a root (in Chrome, CSS, ID and link text lookups do), and closed roots are out of reach.
 
 ### 🔍 Deep Dive: Why Standard Queries Fail
 
@@ -3398,7 +3449,7 @@ Selector maintenance can consume substantial engineering time. Track locator-rel
 driver.find_element(By.ID, "input_email_7x9k2")  # Changes each build
 
 # ⚠️ SOMEWHAT BRITTLE: Generated class names
-driver.find_element(By.CSS_SELECTOR, ".MuiInput-root-1234")  # Material-UI
+driver.find_element(By.CSS_SELECTOR, ".css-1x5jdmq")  # Example value: an MUI v5 generated class, which can change when styles or versions change
 
 # ✓ BETTER: data-testid (but requires dev cooperation)
 driver.find_element(By.CSS_SELECTOR, "[data-testid='email-input']")
@@ -3616,7 +3667,7 @@ response = "The capital city of France is Paris."
 asserter.assert_similarity(
     response,
     "Paris is France's capital",
-    min_score=0.75  # cosine similarity between 0 and 1
+    min_score=0.75  # cosine similarity: -1 to 1, usually 0 to 1 for sentences
 )
 
 # Get the raw score when you want to log it or set your own rule
@@ -3675,15 +3726,15 @@ driver.quit()
 
 Every call to OpenAI/Claude/Gemini costs money and time:
 
-- API calls: $0.01-$0.10 per request 
-- Latency: 500ms-5000ms per call 
-- Rate limits: 60-1000 requests/minute 
+- API calls: for example $0.01 to $0.10 per request (prices depend on the model and prompt size, so check your provider's pricing page) 
+- Latency: often from under a second to several seconds per call 
+- Rate limits: set by each provider, per account and model 
 - Non-determinism: Same prompt, different results
 
 For a CI pipeline running 50+ tests 10 times daily:
 
 - **500+ API calls/day** 
-- **$50-500/month just for testing** 
+- **$150 to $1,500 a month just for testing, at those example prices** 
 - **Flaky tests from non-determinism**
 
 ## Pytest-MockLLM Solution
@@ -3726,7 +3777,7 @@ Queue several answers with `add_responses("first", "second")`. Run with `pytest 
 
 ### 🔍 Deep Dive: How Recorded Requests Are Matched
 
-When replaying a recording, Pytest-MockLLM must decide which saved response belongs to a request. It matches on the provider, HTTP method, URL and the full JSON request body (model, messages, tools, sampling parameters and the stream flag). Credential headers do not affect matching. There is no fuzzy matching: if you change a prompt, even cosmetically, the request no longer matches and you record that interaction again. This keeps replays honest, because a test can never pass on an answer recorded for a different prompt.
+When replaying a recording, Pytest-MockLLM must decide which saved response belongs to a request. It matches on the provider, HTTP method, URL and the full JSON request body (model, messages, tools, sampling parameters and the stream flag). Credential headers do not affect matching. A few headers that change what the API does do count: `content-type`, `anthropic-version`, `anthropic-beta`, `openai-beta`, `openai-organization` and `openai-project`. Recording and replay cover the OpenAI chat completions, responses and embeddings endpoints and the Anthropic messages endpoint. There is no fuzzy matching: if you change a prompt, even cosmetically, the request no longer matches and you record that interaction again. This keeps replays honest, because a test can never pass on an answer recorded for a different prompt.
 
 ---
 
@@ -3844,9 +3895,9 @@ Remote desktop environments present automation's hardest challenge:
 | --- | --- | --- | --- |
 | Web Browser | ✅ Full | ✅ Full | Elements, attributes, structure |
 | Native Desktop | ❌ None | ✅ Partial | Some UI elements via UI Automation |
-| Remote Desktop (Citrix/VDI) | ❌ None | ❌ None | **Only pixels** |
+| Remote Desktop (Citrix/VDI) | ❌ None | ❌ Usually none | **Only pixels** |
 
-When you connect to a Citrix session, all you receive is a video stream. There's no DOM, no accessibility tree, no UI Automation—just an image.
+When you connect to a Citrix session, what usually reaches your automation machine is a stream of screen images. There's no DOM, and usually no accessibility tree or UI Automation for the remote app, just an image.
 
 ### Traditional Approaches and Their Problems
 
@@ -3910,8 +3961,9 @@ Visual Sonar uses **focus change detection**: it presses TAB and compares screen
 ```bash
 pip install visual-sonar
 
-# Optional, for OCR checks: pytesseract (or easyocr)
-pip install pytesseract
+# Optional, for OCR checks: the ocr extra adds pytesseract
+# (the ocr-full extra adds easyocr)
+pip install "visual-sonar[ocr]"
 
 # Also install the Tesseract OCR binary:
 # Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
@@ -4077,7 +4129,7 @@ pip install project-vandal
 playwright install chromium
 ```
 
-Vandal works with Playwright for Python and its async API. It does not support Selenium or Playwright's sync API today.
+Vandal works with Playwright for Python. The `Vandal` class below uses Playwright's async API. The `pytest --vandal` plugin also runs sync Playwright tests. Selenium is not supported today.
 
 ## Basic Usage
 
@@ -4159,7 +4211,8 @@ element.innerText = 'VANDALIZED_TEXT';  // everything else
 Breaks click handling while the element still looks and accepts clicks normally:
 
 ```javascript
-// "logic_sabotage": a capture-phase listener runs before the app's handlers
+// "logic_sabotage": a capture listener on the element runs before the element's
+// own bubble listeners and stops the event before it bubbles up to the app
 element.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -4172,7 +4225,7 @@ Two more strategies exist: `ui_shift` moves the element 100px right and down, an
 
 ## Mutation Score
 
-Vandal records one result per `async with` block. To score a test, run it once per mutation on a fresh page and count the killed mutants yourself:
+Vandal records one result per `async with` block. With the `Vandal` class, run the test once per mutation on a fresh page and count the killed mutants yourself, as below. If your tests run under pytest, `pytest --vandal` does this for you: it reruns each test once per mutant, prints a strength score, and `--vandal-min-score` can fail the run below a threshold.
 
 ```python
 import asyncio
@@ -4420,7 +4473,7 @@ How to structure a framework, run it in CI, plan the work, check data with SQL, 
 
 # Chapter 17: The Four-Layer Architecture
 
-**What you’ll learn** Separate test intent, domain actions, page mechanics, and infrastructure.
+**What you’ll learn** Separate test intent, business actions, core element helpers, and infrastructure.
 
 **Put it to work** Change a locator without editing the business assertion or fixture lifecycle.
 
@@ -4549,7 +4602,7 @@ Pytest does not have a built-in `--browser=` option. Pass the browser name in an
 
 GitHub-hosted Ubuntu runners include Google Chrome, Firefox, and Microsoft Edge. The `ubuntu-latest` label can move to a new Ubuntu version, so print the browser version in the log and check the [hosted runner software list](https://github.com/actions/runner-images) when a failure appears only in CI. Current Selenium includes Selenium Manager, which can resolve a matching driver. You still need the browser itself on the runner.
 
-The workflow below uses `actions/checkout@v4`, `actions/setup-python@v5`, and `actions/upload-artifact@v4`, the same major versions used in the Waitless repository. It installs from `requirements.lock.txt`, which the setup guide already asks you to commit. `if: always()` uploads reports even when the tests fail. Create the report directories first, because pytest will not write a JUnit file into a missing folder.
+The workflow below uses `actions/checkout@v4`, `actions/setup-python@v5`, and `actions/upload-artifact@v4`, the same major versions used in the Waitless repository. It installs from `requirements.lock.txt`, which the setup guide already asks you to commit. `if: always()` uploads reports even when the tests fail. pytest creates the folder for the JUnit file itself. Create the screenshots folder first, because your own screenshot code may not create it.
 
 ```yaml
 name: Browser tests
@@ -4670,7 +4723,7 @@ The hours and multipliers below are starting points. Replace them with numbers f
 
 ### Step 1: Decompose Ruthlessly
 
-**Rule of thumb**: If a task can't be broken into pieces under 4 hours, you don't understand it yet.
+**Rule of thumb**: If a task can't be broken into pieces of 4 hours or less, you don't understand it yet.
 
 ```
 BAD:  "Automate login flow" (1 vague task)
@@ -4752,7 +4805,7 @@ Here are the five steps applied to one feature: checkout with a discount code. T
 
 **Step 5: buffer.** You have built something similar, so use medium confidence (+40%): 27.6 × 1.4 = 38.6, so about 39 hours.
 
-Give the result as a range, not one number: **28 to 39 hours**, about four to five working days for one person. Say what it assumes: the seeding API works, the form needs no special test data, and the test environment is free that week. If one of those turns out false, re-estimate instead of quietly working late.
+Give the result as a range, not one number: **28 to 39 hours**, about three and a half to five working days for one person. Say what it assumes: the seeding API works, the form needs no special test data, and the test environment is free that week. If one of those turns out false, re-estimate instead of quietly working late.
 
 ## 🔧 Put It to Work: Compare With What Really Happened
 
@@ -4769,7 +4822,7 @@ An estimate only gets better if you check it. Keep a small table next to the pla
 
 When the feature is done, divide the total actual hours by the estimate before the buffer (28 hours in this example). A ratio near 1.0 means your base hours and multipliers fit your team. If the ratio is far from 1.0 on several features in a row, change the base hours in Step 3 or the multipliers in Step 4, not just the buffer. The "why it differed" column tells you which one.
 
-**What you learned** Break work into tasks under four hours, pick a complexity, apply base hours and multipliers, add a buffer, give a range, and then compare it with what really happened.
+**What you learned** Break work into tasks of four hours or less, pick a complexity, apply base hours and multipliers, add a buffer, give a range, and then compare it with what really happened.
 
 **Try this** Estimate your next feature with the five steps and fill in the comparison table as you work.
 
@@ -5431,7 +5484,7 @@ Every published tool in this book is open source. Install names, source code and
 | `ElementNotInteractableException` | Element exists but can't be interacted with | Wait for clickable, check visibility |
 | `StaleElementReferenceException` | Element was removed/re-added to DOM | Re-find element, use Waitless |
 | `TimeoutException` | Wait condition not met in time | Increase timeout, check condition |
-| `WebDriverException` | Browser/driver communication issue | Restart browser, check versions |
+| `WebDriverException` | Base class for Selenium errors, often a browser or driver problem | Restart browser, check versions |
 | `ElementClickInterceptedException` | Another element covering target | Scroll to view, wait for overlays |
 
 ---
