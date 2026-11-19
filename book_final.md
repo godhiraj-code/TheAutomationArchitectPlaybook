@@ -2051,7 +2051,7 @@ Before we can skip login, we need to understand what "being logged in" means at 
 
 | Storage Type | Persists After Close? | Accessible By | Size Limit |
 | --- | --- | --- | --- |
-| **Cookies** | Depends on `Expires` | Server + JavaScript | ~4KB per cookie |
+| **Cookies** | Depends on `Expires` | Server, plus JavaScript unless the cookie is `HttpOnly` | ~4KB per cookie |
 | **LocalStorage** | Yes | JavaScript only | ~5MB |
 | **SessionStorage** | No (tab-scoped) | JavaScript only | ~5MB |
 | **IndexedDB** | Yes | JavaScript only | Varies (large) |
@@ -2435,7 +2435,7 @@ driver.add_cookie({
 
 ### Pitfall 2: Secure Cookies on HTTP
 
-`Secure` cookies only work on HTTPS:
+`Secure` cookies only work on HTTPS, or on `localhost` and `127.0.0.1`, which Chrome treats as secure:
 
 ```python
 from selenium import webdriver
@@ -2554,7 +2554,7 @@ if __name__ == "__main__":
 
 ## Why Your Tests Get Blocked
 
-Modern bot detection has evolved far beyond simple CAPTCHAs. Services like Cloudflare, PerimeterX, DataDome, and Akamai use sophisticated fingerprinting that can detect standard Selenium in milliseconds.
+Modern bot detection has evolved far beyond simple CAPTCHAs. Services like Cloudflare, PerimeterX, DataDome, and Akamai use sophisticated fingerprinting that can detect standard Selenium quickly.
 
 ### The Detection Arsenal
 
@@ -2617,14 +2617,18 @@ console.log(navigator.webdriver);  // true = Selenium!
 const canvas = document.createElement('canvas');
 const gl = canvas.getContext('webgl');
 
+// gl.VENDOR and gl.RENDERER return generic values ("WebKit", "WebKit WebGL").
+// The real GPU strings come from the WEBGL_debug_renderer_info extension.
+const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+
 const fingerprint = {
-    vendor: gl.getParameter(gl.VENDOR),
-    renderer: gl.getParameter(gl.RENDERER),
+    vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : null,
+    renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : null,
     extensions: gl.getSupportedExtensions()
 };
 
-// Real browser: "Intel Inc." / "Intel Iris OpenGL Engine"
-// Headless: Often "Google SwiftShader" or empty
+// Real browser: a real GPU, for example "Google Inc. (Intel)" / "ANGLE (Intel, ...)"
+// Headless or a VM: often a software renderer such as SwiftShader
 ```
 
 ### Detection Vector 3: Canvas Fingerprint
@@ -2673,7 +2677,7 @@ driver = webdriver.Chrome()
 # ✗ Inhuman interaction speed (clicks happen instantly)
 # ✗ No mouse movement between clicks
 
-# Result: Blocked immediately
+# Result: often challenged or blocked, depending on the site's settings
 ```
 
 ---
@@ -2704,7 +2708,7 @@ document.addEventListener('keydown', e => {
 });
 
 // Analysis:
-// Human: Variable delays (50-300ms), some keys faster (home row)
+// Human: variable delays between keys, some keys faster than others
 // Bot: Perfect consistent timing, or all keys instant
 ```
 
@@ -2712,7 +2716,7 @@ document.addEventListener('keydown', e => {
 
 | Metric | Human | Bot |
 | --- | --- | --- |
-| Time on page before first click | 2-10 seconds | < 500ms |
+| Time on page before first click | Usually a few seconds | Often well under a second |
 | Mouse movement before click | Curved path | None or straight |
 | Click position | Slightly random | Exact center |
 | Double-click frequency | Occasional | Never or always |
@@ -2805,7 +2809,7 @@ with StealthBot(headless=False, success_criteria="Sign in") as bot:
 `StealthBot` keeps its options small. It does not expose fingerprint, typing or mouse settings; for anything more, use the SeleniumBase API through `bot.sb` or pass your own strategy objects (`driver_strategy`, `input_strategy`, `evasion_strategy`).
 
 ```python
-from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError
+from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError, SuccessCriteriaNotMetError
 
 bot = StealthBot(
     headless=False,                     # On Linux, False runs headed inside Xvfb
@@ -2820,6 +2824,9 @@ try:
 except ChallengeNotSolvedError:
     # The challenge was still there after the bounded retries
     raise
+except SuccessCriteriaNotMetError:
+    # No challenge left, but the success text never appeared
+    raise
 ```
 
 ---
@@ -2831,13 +2838,14 @@ except ChallengeNotSolvedError:
 Challenge handling runs inside `safe_get()` and before each `smart_click()`. Set `success_criteria` so the bot proves it reached the real page:
 
 ```python
-from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError
+from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError, SuccessCriteriaNotMetError
 
 with StealthBot(success_criteria="Welcome") as bot:
     try:
         # Waits for the page and tries to clear a challenge if one appears
         bot.safe_get("https://site-with-cloudflare.com")
-    except ChallengeNotSolvedError:
+    except (ChallengeNotSolvedError, SuccessCriteriaNotMetError):
+        # A challenge that stayed, or a page without the success text
         bot.save_screenshot("challenge_failed")
         raise
 

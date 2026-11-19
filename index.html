@@ -2187,7 +2187,7 @@ if __name__ == "__main__":
             <tr>
                 <td><strong>Cookies</strong></td>
                 <td>Depends on <code>Expires</code></td>
-                <td>Server + JavaScript</td>
+                <td>Server, plus JavaScript unless the cookie is <code>HttpOnly</code></td>
                 <td>~4KB per cookie</td>
             </tr>
             <tr>
@@ -2550,7 +2550,7 @@ driver.add_cookie({
 })
 </code></pre>
     <h3 id="pitfall-2-secure-cookies-on-http">Pitfall 2: Secure Cookies on HTTP</h3>
-    <p><code>Secure</code> cookies only work on HTTPS:</p>
+    <p><code>Secure</code> cookies only work on HTTPS, or on <code>localhost</code> and <code>127.0.0.1</code>, which Chrome treats as secure:</p>
 <pre><code class="language-python">from selenium import webdriver
 
 driver = webdriver.Chrome()
@@ -2676,7 +2676,7 @@ if __name__ == "__main__":
     </p>
     <h2 id="why-your-tests-get-blocked">Why Your Tests Get Blocked</h2>
     <p>Modern bot detection has evolved far beyond simple CAPTCHAs. Services like Cloudflare, PerimeterX, DataDome, and
-        Akamai use sophisticated fingerprinting that can detect standard Selenium in milliseconds.</p>
+        Akamai use sophisticated fingerprinting that can detect standard Selenium quickly.</p>
     <h3 id="the-detection-arsenal">The Detection Arsenal</h3>
     <pre><code>┌─────────────────────────────────────────────────────────────────┐
 │                   BOT DETECTION LAYERS                           │
@@ -2728,14 +2728,18 @@ console.log(navigator.webdriver);  // true = Selenium!
 const canvas = document.createElement('canvas');
 const gl = canvas.getContext('webgl');
 
+// gl.VENDOR and gl.RENDERER return generic values ("WebKit", "WebKit WebGL").
+// The real GPU strings come from the WEBGL_debug_renderer_info extension.
+const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+
 const fingerprint = {
-    vendor: gl.getParameter(gl.VENDOR),
-    renderer: gl.getParameter(gl.RENDERER),
+    vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : null,
+    renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : null,
     extensions: gl.getSupportedExtensions()
 };
 
-// Real browser: "Intel Inc." / "Intel Iris OpenGL Engine"
-// Headless: Often "Google SwiftShader" or empty
+// Real browser: a real GPU, for example "Google Inc. (Intel)" / "ANGLE (Intel, ...)"
+// Headless or a VM: often a software renderer such as SwiftShader
 </code></pre>
     <h3 id="detection-vector-3-canvas-fingerprint">Detection Vector 3: Canvas Fingerprint</h3>
     <pre><code class="language-javascript">// Same canvas operations produce different pixels per system
@@ -2775,7 +2779,7 @@ driver = webdriver.Chrome()
 # ✗ Inhuman interaction speed (clicks happen instantly)
 # ✗ No mouse movement between clicks
 
-# Result: Blocked immediately
+# Result: often challenged or blocked, depending on the site's settings
 </code></pre>
     <hr>
     <h2 id="detection-vector-5-behavioral-analysis">Detection Vector 5: Behavioral Analysis</h2>
@@ -2797,7 +2801,7 @@ document.addEventListener('keydown', e =&gt; {
 });
 
 // Analysis:
-// Human: Variable delays (50-300ms), some keys faster (home row)
+// Human: variable delays between keys, some keys faster than others
 // Bot: Perfect consistent timing, or all keys instant
 </code></pre>
     <h3 id="click-behavior">Click Behavior</h3>
@@ -2812,8 +2816,8 @@ document.addEventListener('keydown', e =&gt; {
         <tbody>
             <tr>
                 <td>Time on page before first click</td>
-                <td>2-10 seconds</td>
-                <td>&lt; 500ms</td>
+                <td>Usually a few seconds</td>
+                <td>Often well under a second</td>
             </tr>
             <tr>
                 <td>Mouse movement before click</td>
@@ -2896,7 +2900,7 @@ with StealthBot(headless=False, success_criteria="Sign in") as bot:
     <hr>
     <h2 id="configuration-options_1">Configuration Options</h2>
     <p><code>StealthBot</code> keeps its options small. It does not expose fingerprint, typing or mouse settings; for anything more, use the SeleniumBase API through <code>bot.sb</code> or pass your own strategy objects (<code>driver_strategy</code>, <code>input_strategy</code>, <code>evasion_strategy</code>).</p>
-    <pre><code class="language-python">from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError
+    <pre><code class="language-python">from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError, SuccessCriteriaNotMetError
 
 bot = StealthBot(
     headless=False,                     # On Linux, False runs headed inside Xvfb
@@ -2911,18 +2915,22 @@ try:
 except ChallengeNotSolvedError:
     # The challenge was still there after the bounded retries
     raise
+except SuccessCriteriaNotMetError:
+    # No challenge left, but the success text never appeared
+    raise
 </code></pre>
     <hr>
     <h2 id="handling-specific-protections">Handling Specific Protections</h2>
     <h3 id="cloudflare-turnstile">Cloudflare Turnstile</h3>
     <p>Challenge handling runs inside <code>safe_get()</code> and before each <code>smart_click()</code>. Set <code>success_criteria</code> so the bot proves it reached the real page:</p>
-    <pre><code class="language-python">from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError
+    <pre><code class="language-python">from sb_stealth_wrapper import StealthBot, ChallengeNotSolvedError, SuccessCriteriaNotMetError
 
 with StealthBot(success_criteria="Welcome") as bot:
     try:
         # Waits for the page and tries to clear a challenge if one appears
         bot.safe_get("https://site-with-cloudflare.com")
-    except ChallengeNotSolvedError:
+    except (ChallengeNotSolvedError, SuccessCriteriaNotMetError):
+        # A challenge that stayed, or a page without the success text
         bot.save_screenshot("challenge_failed")
         raise
 
