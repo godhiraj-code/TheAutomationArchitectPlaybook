@@ -2627,7 +2627,7 @@ const fingerprint = {
     extensions: gl.getSupportedExtensions()
 };
 
-// Real browser: a real GPU, for example "Google Inc. (Intel)" / "ANGLE (Intel, ...)"
+// Real browser: the real GPU. Example values: "Google Inc. (Intel)" / "ANGLE (Intel, ...)"
 // Headless or a VM: often a software renderer such as SwiftShader
 ```
 
@@ -3449,7 +3449,7 @@ Selector maintenance can consume substantial engineering time. Track locator-rel
 driver.find_element(By.ID, "input_email_7x9k2")  # Changes each build
 
 # ⚠️ SOMEWHAT BRITTLE: Generated class names
-driver.find_element(By.CSS_SELECTOR, ".css-1x5jdmq")  # MUI v5 generated class, can change when styles or versions change
+driver.find_element(By.CSS_SELECTOR, ".css-1x5jdmq")  # Example value: an MUI v5 generated class, which can change when styles or versions change
 
 # ✓ BETTER: data-testid (but requires dev cooperation)
 driver.find_element(By.CSS_SELECTOR, "[data-testid='email-input']")
