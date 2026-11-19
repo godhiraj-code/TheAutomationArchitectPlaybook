@@ -1137,9 +1137,9 @@ The default `normal` mode waits for the DOM and the network. `strict` mode also 
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   WAITLESS WRAPPER                               │
-│  • Intercepts all WebDriver commands                            │
+│  • Wraps navigation, element lookup and element actions         │
 │  • Injects stability checks before each action                  │
-│  • No code changes required in your tests                       │
+│  • Only the driver setup changes in your tests                  │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -1185,7 +1185,7 @@ print(driver.find_element(By.CSS_SELECTOR, "#results .result").text)  # waits fo
 driver.quit()
 ```
 
-**That's it.** No explicit waits. No sleep statements. The driver automatically waits for stability before every action. **New in v0.3.0+:** Waitless also observes **open Shadow DOM** roots, so changes inside web components count too. Closed shadow roots cannot be observed.
+**That's it.** No explicit waits. No sleep statements. The driver automatically waits for stability before every action. **New in v0.3.1:** Waitless also observes **open Shadow DOM** roots, so changes inside web components count too. Closed shadow roots cannot be observed.
 
 ---
 
@@ -1216,9 +1216,9 @@ The `MutationObserver` API watches for changes to the DOM tree:
 })();
 ```
 
-**Stability Criteria:** No mutations for 100ms (configurable).
+**Stability Criteria:** The DOM has been quiet for 100ms and the mutation rate is at or below 50 per second. Both are configurable, with `dom_settle_time` and `mutation_rate_threshold`.
 
-**Why 100ms?** React, Vue, and Angular typically batch multiple DOM updates within a single animation frame (16ms). The 100ms buffer ensures all related updates have completed.
+**Why 100ms?** Frameworks such as React, Vue, and Angular often apply a burst of related DOM updates close together, usually within a frame or two (a frame is about 16ms at 60 frames per second). A 100ms quiet period gives most of those bursts time to finish. If your app updates in slower steps, raise `dom_settle_time`.
 
 ### Component 2: Network Interceptor
 
@@ -1365,7 +1365,7 @@ finally:
 **Example output (shortened):**
 
 ```
-UI did not stabilize within 3.0s. Blocking: ['pending_requests']
+UI did not stabilize within 2.9999821169985808s. Run 'waitless doctor' for detailed analysis. Blocking: ['pending_requests']
 
 | SIGNAL STATUS:                                                   |
 |   [OK] [M] DOM_MUTATIONS: Mutation rate: 0/sec (threshold: 50/se |
@@ -1377,7 +1377,7 @@ UI did not stabilize within 3.0s. Blocking: ['pending_requests']
 |      config = StabilizationConfig(network_idle_threshold=2)      |
 ```
 
-This tells you the page wasn't stable because a request was still pending. Save the diagnostics to a JSON file and run `python -m waitless doctor --file diagnostics.json` to get the same report from the command line.
+The time in the first line is the measured wait, so its exact digits change from run to run. This tells you the page wasn't stable because a request was still pending. Save the diagnostics to a JSON file and run `python -m waitless doctor --file diagnostics.json` to get the same report from the command line.
 
 ---
 
@@ -1541,7 +1541,7 @@ A user sees pixels, not DOM elements. Visual testing validates what users actual
 | Text color matches background | ✅ PASS (text exists in DOM) | "I can't read anything!" |
 | Modal renders behind overlay | ✅ PASS (elements exist) | "The site is frozen!" |
 | Font failed to load | ✅ PASS (text displays) | "This looks unprofessional" |
-| Mobile layout broken | ✅ PASS (desktop tested) | 50% of users can't use site |
+| Mobile layout broken | ✅ PASS (desktop tested) | Mobile users can't use the site |
 
 ---
 
@@ -1574,7 +1574,7 @@ Two images can be:
 - **Pixel-different but visually identical** (anti-aliasing variations) 
 - **Pixel-similar but visually different** (subtle color shift across entire page)
 
-We need algorithms that match **human perception**, not bit comparison.
+We need algorithms that are closer to **human perception**, not bit comparison.
 
 ---
 
@@ -1630,7 +1630,7 @@ Where α, β, γ are weights (typically all 1)
 │                      │                                          │
 │                      ▼                                          │
 │              SSIM Score: 0.97                                   │
-│              (1.0 = identical, 0.0 = completely different)      │
+│              (1.0 = identical, lower = less similar)            │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -1640,7 +1640,7 @@ Where α, β, γ are weights (typically all 1)
 - Ignores minor anti-aliasing differences (structure preserved) 
 - Detects layout shifts (structure changed) 
 - Handles slight color variations gracefully 
-- Matches human perception of "same" vs "different"
+- Agrees with human judgement of "same" vs "different" more often than pixel diffs do
 
 ### Algorithm 2: Perceptual Hashing (pHash)
 
@@ -1661,12 +1661,13 @@ def perceptual_hash(image):
     # 4. Keep only low-frequency components (top-left 8x8)
     low_freq = dct[:8, :8]
 
-    # 5. Compute average (excluding the DC term, the top-left value)
+    # 5. Compute the median of the 64 values
+    #    (imagehash.phash, which Visual Guard uses, does this)
     values = low_freq.flatten()
-    avg = average(values[1:])
+    med = median(values)
 
-    # 6. Create hash: 1 if above average, 0 if below
-    hash = "".join("1" if v > avg else "0" for v in values)
+    # 6. Create hash: 1 if above the median, 0 if not
+    hash = "".join("1" if v > med else "0" for v in values)
 
     return hash  # 64-bit string like "1010110010..."
 ```
@@ -1680,7 +1681,8 @@ hash2 = "10101110..."  # Current (only 1 bit different)
 
 hamming_distance = 1  # Very similar!
 
-# Threshold: distance < 10 means same image
+# Small distances mean similar images. Visual Guard's own code notes
+# that 0 to 5 is very close. Tune the threshold on your own screenshots.
 ```
 
 ---
@@ -1814,22 +1816,29 @@ For other browsers, repeat the loop with `webdriver.Firefox()` or `webdriver.Edg
 
 ### Full-Page Screenshots
 
-For pages with scroll, give Visual Guard a full-page image. One simple way in Chrome is to make the window as tall as the page:
+For pages with scroll, give Visual Guard a full-page image. Making the window as tall as the page is not enough, because the window height includes the browser's own toolbars, so the bottom of the page gets cut off. In Chrome, ask the DevTools Protocol for the whole page instead:
 
 ```python
+import base64
+
 from selenium import webdriver
 from visual_guard import VisualTester
 
 driver = webdriver.Chrome()
+driver.set_window_size(1280, 900)
 driver.get("https://en.wikipedia.org/wiki/Software_testing")
 tester = VisualTester(baseline_dir="baselines", snapshot_dir="snapshots")
 
-# Make the window as tall as the page, then take one screenshot
-# (most reliable in headless mode, where the window is not limited by the screen)
-height = driver.execute_script("return document.documentElement.scrollHeight")
-driver.set_window_size(1280, height)
+# Ask Chrome for the whole page in one image (Chrome DevTools Protocol)
+size = driver.execute_cdp_cmd("Page.getLayoutMetrics", {})["cssContentSize"]
+shot = driver.execute_cdp_cmd("Page.captureScreenshot", {
+    "format": "png",
+    "captureBeyondViewport": True,
+    "clip": {"x": 0, "y": 0, "width": size["width"], "height": size["height"], "scale": 1},
+})
+png = base64.b64decode(shot["data"])
 
-passed = tester.assert_matches(driver, "long_page", method="phash", threshold=8)
+passed = tester.assert_matches(png, "long_page", method="phash", threshold=8)
 driver.quit()
 ```
 
@@ -1945,7 +1954,7 @@ if __name__ == "__main__":
 | --- | --- |
 | Functional vs Visual | Functional tests miss layout/style bugs |
 | Pixel comparison | Too brittle, constant false positives |
-| SSIM | Compares structure, matches human perception |
+| SSIM | Compares structure, closer to human perception |
 | pHash | Creates fingerprint, tolerates minor changes |
 | Region masking | Handle dynamic content areas |
 | Multi-browser | Test across browsers and viewports |

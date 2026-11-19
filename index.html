@@ -1314,9 +1314,9 @@ def get_pending_requests(driver):
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                   WAITLESS WRAPPER                               │
-│  • Intercepts all WebDriver commands                            │
+│  • Wraps navigation, element lookup and element actions         │
 │  • Injects stability checks before each action                  │
-│  • No code changes required in your tests                       │
+│  • Only the driver setup changes in your tests                  │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -1356,7 +1356,7 @@ print(driver.find_element(By.CSS_SELECTOR, "#results .result").text)  # waits fo
 driver.quit()
 </code></pre>
     <p><strong>That's it.</strong> No explicit waits. No sleep statements. The driver automatically waits for stability
-        before every action. <strong>New in v0.3.0+:</strong> Waitless also observes <strong>open Shadow DOM</strong> roots, so
+        before every action. <strong>New in v0.3.1:</strong> Waitless also observes <strong>open Shadow DOM</strong> roots, so
             changes inside web components count too. Closed shadow roots cannot be observed.</p>
     <hr>
     <h2 id="deep-dive-how-each-component-works">🔍 Deep Dive: How Each Component Works</h2>
@@ -1381,9 +1381,13 @@ driver.quit()
     });
 })();
 </code></pre>
-    <p><strong>Stability Criteria:</strong> No mutations for 100ms (configurable).</p>
-    <p><strong>Why 100ms?</strong> React, Vue, and Angular typically batch multiple DOM updates within a single
-        animation frame (16ms). The 100ms buffer ensures all related updates have completed.</p>
+    <p><strong>Stability Criteria:</strong> The DOM has been quiet for 100ms and the mutation rate is at or below 50
+        per second. Both are configurable, with <code>dom_settle_time</code> and
+        <code>mutation_rate_threshold</code>.</p>
+    <p><strong>Why 100ms?</strong> Frameworks such as React, Vue, and Angular often apply a burst of related DOM
+        updates close together, usually within a frame or two (a frame is about 16ms at 60 frames per second). A 100ms
+        quiet period gives most of those bursts time to finish. If your app updates in slower steps, raise
+        <code>dom_settle_time</code>.</p>
     <h3 id="component-2-network-interceptor">Component 2: Network Interceptor</h3>
     <p>Waitless intercepts <code>XMLHttpRequest</code> and <code>fetch</code> to track pending requests:</p>
     <pre><code class="language-javascript">// Simplified sketch: XMLHttpRequest interception
@@ -1528,7 +1532,7 @@ finally:
     driver.quit()
 </code></pre>
     <p><strong>Example output (shortened):</strong></p>
-    <pre><code>UI did not stabilize within 3.0s. Blocking: ['pending_requests']
+    <pre><code>UI did not stabilize within 2.9999821169985808s. Run 'waitless doctor' for detailed analysis. Blocking: ['pending_requests']
 
 | SIGNAL STATUS:                                                   |
 |   [OK] [M] DOM_MUTATIONS: Mutation rate: 0/sec (threshold: 50/se |
@@ -1539,7 +1543,7 @@ finally:
 |    background traffic (analytics, polling), consider:            |
 |      config = StabilizationConfig(network_idle_threshold=2)      |
 </code></pre>
-    <p>This tells you the page wasn't stable because a request was still pending. Save the diagnostics to a JSON file and run <code>python -m waitless doctor --file diagnostics.json</code> to get the same report from the command line.</p>
+    <p>The time in the first line is the measured wait, so its exact digits change from run to run. This tells you the page wasn't stable because a request was still pending. Save the diagnostics to a JSON file and run <code>python -m waitless doctor --file diagnostics.json</code> to get the same report from the command line.</p>
     <hr>
     <p style="text-align: center; margin: 2rem 0;">
         <img src="assets/images/stability.png" alt="Test Stability Visualization" style="max-width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
@@ -1718,7 +1722,7 @@ finally:
             <tr>
                 <td>Mobile layout broken</td>
                 <td>✅ PASS (desktop tested)</td>
-                <td>50% of users can't use site</td>
+                <td>Mobile users can't use the site</td>
             </tr>
         </tbody>
     </table>
@@ -1748,7 +1752,7 @@ def compare_images(baseline, current):
         <li><strong>Pixel-different but visually identical</strong> (anti-aliasing variations)</li>
         <li><strong>Pixel-similar but visually different</strong> (subtle color shift across entire page)</li>
     </ul>
-    <p>We need algorithms that match <strong>human perception</strong>, not bit comparison.</p>
+    <p>We need algorithms that are closer to <strong>human perception</strong>, not bit comparison.</p>
     <hr>
     <h2 id="visual-guards-intelligent-approach">Visual Guard's Intelligent Approach</h2>
     <p>Visual Guard uses <strong>perceptual comparison algorithms</strong> that mimic how humans see:</p>
@@ -1794,7 +1798,7 @@ Where α, β, γ are weights (typically all 1)
 │                      │                                          │
 │                      ▼                                          │
 │              SSIM Score: 0.97                                   │
-│              (1.0 = identical, 0.0 = completely different)      │
+│              (1.0 = identical, lower = less similar)            │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 </code></pre>
@@ -1803,7 +1807,7 @@ Where α, β, γ are weights (typically all 1)
         <li>Ignores minor anti-aliasing differences (structure preserved)</li>
         <li>Detects layout shifts (structure changed)</li>
         <li>Handles slight color variations gracefully</li>
-        <li>Matches human perception of "same" vs "different"</li>
+        <li>Agrees with human judgement of "same" vs "different" more often than pixel diffs do</li>
     </ul>
     <h3 id="algorithm-2-perceptual-hashing-phash">Algorithm 2: Perceptual Hashing (pHash)</h3>
     <p>pHash creates a "fingerprint" of the image that's resistant to minor changes:</p>
@@ -1821,12 +1825,13 @@ def perceptual_hash(image):
     # 4. Keep only low-frequency components (top-left 8x8)
     low_freq = dct[:8, :8]
 
-    # 5. Compute average (excluding the DC term, the top-left value)
+    # 5. Compute the median of the 64 values
+    #    (imagehash.phash, which Visual Guard uses, does this)
     values = low_freq.flatten()
-    avg = average(values[1:])
+    med = median(values)
 
-    # 6. Create hash: 1 if above average, 0 if below
-    hash = "".join("1" if v &gt; avg else "0" for v in values)
+    # 6. Create hash: 1 if above the median, 0 if not
+    hash = "".join("1" if v &gt; med else "0" for v in values)
 
     return hash  # 64-bit string like "1010110010..."
 </code></pre>
@@ -1837,7 +1842,8 @@ hash2 = "10101110..."  # Current (only 1 bit different)
 
 hamming_distance = 1  # Very similar!
 
-# Threshold: distance &lt; 10 means same image
+# Small distances mean similar images. Visual Guard's own code notes
+# that 0 to 5 is very close. Tune the threshold on your own screenshots.
 </code></pre>
     <hr>
     <h2 id="using-visual-guard">Using Visual Guard</h2>
@@ -1944,20 +1950,27 @@ for width, height in viewports:
 </code></pre>
     <p>For other browsers, repeat the loop with <code>webdriver.Firefox()</code> or <code>webdriver.Edge()</code> and put the browser name in the baseline name. Never compare a Firefox screenshot against a Chrome baseline.</p>
     <h3 id="full-page-screenshots">Full-Page Screenshots</h3>
-    <p>For pages with scroll, give Visual Guard a full-page image. One simple way in Chrome is to make the window as tall as the page:</p>
-    <pre><code class="language-python">from selenium import webdriver
+    <p>For pages with scroll, give Visual Guard a full-page image. Making the window as tall as the page is not enough, because the window height includes the browser's own toolbars, so the bottom of the page gets cut off. In Chrome, ask the DevTools Protocol for the whole page instead:</p>
+    <pre><code class="language-python">import base64
+
+from selenium import webdriver
 from visual_guard import VisualTester
 
 driver = webdriver.Chrome()
+driver.set_window_size(1280, 900)
 driver.get("https://en.wikipedia.org/wiki/Software_testing")
 tester = VisualTester(baseline_dir="baselines", snapshot_dir="snapshots")
 
-# Make the window as tall as the page, then take one screenshot
-# (most reliable in headless mode, where the window is not limited by the screen)
-height = driver.execute_script("return document.documentElement.scrollHeight")
-driver.set_window_size(1280, height)
+# Ask Chrome for the whole page in one image (Chrome DevTools Protocol)
+size = driver.execute_cdp_cmd("Page.getLayoutMetrics", {})["cssContentSize"]
+shot = driver.execute_cdp_cmd("Page.captureScreenshot", {
+    "format": "png",
+    "captureBeyondViewport": True,
+    "clip": {"x": 0, "y": 0, "width": size["width"], "height": size["height"], "scale": 1},
+})
+png = base64.b64decode(shot["data"])
 
-passed = tester.assert_matches(driver, "long_page", method="phash", threshold=8)
+passed = tester.assert_matches(png, "long_page", method="phash", threshold=8)
 driver.quit()
 </code></pre>
     <p>Firefox can also return a full-page image directly with <code>driver.get_full_page_screenshot_as_png()</code>, which you can pass to <code>assert_matches</code> as PNG bytes.</p>
@@ -2079,7 +2092,7 @@ if __name__ == "__main__":
             </tr>
             <tr>
                 <td>SSIM</td>
-                <td>Compares structure, matches human perception</td>
+                <td>Compares structure, closer to human perception</td>
             </tr>
             <tr>
                 <td>pHash</td>
