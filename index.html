@@ -341,10 +341,17 @@ def test_browser_smoke():
 │  • Video decoding          │
 └────────────────────────────┘
 </code></pre>
+    <p><em>Both diagrams are illustrative. They show one renderer per tab to keep the picture simple, but Chrome does not always split work that way. Chrome can also run networking and storage as separate service processes, which the diagrams leave out.</em></p>
     <h3 id="what-this-means-for-automation">What This Means for Automation</h3>
-    <p><strong>Key Insight #1: Each tab is isolated</strong></p>
-    <p>When you open a new browser window or tab in Selenium, you're potentially creating a new renderer process.
-        Cookies, localStorage, and JavaScript state are shared per-origin, but memory and execution are isolated.</p>
+    <p><strong>Key Insight #1: A new tab is not a clean session</strong></p>
+    <p>Chrome does not assign exactly one renderer process per tab. Tabs can share a renderer, and frames in one tab
+        can run in different renderers. A renderer crash affects the tabs and frames using that process.</p>
+    <p>Opening another tab does not guarantee a clean test session. Tabs in one Selenium session use the same browser
+        profile, so they share the same cookies and localStorage. JavaScript variables are not shared between tabs. One
+        page can reach another tab's JavaScript only in special cases, such as when one page opened the other with
+        <code>window.open</code> and both are on the same origin. See Chromium's
+        <a href="https://www.chromium.org/developers/design-documents/multi-process-architecture/">architecture notes</a> and
+        <a href="https://chromium.googlesource.com/chromium/src/+/main/docs/process_model_and_site_isolation.md">process model notes</a>.</p>
     <p><strong>Key Insight #2: JavaScript runs in the renderer process</strong></p>
     <p>When you call <code>driver.execute_script()</code>, your JavaScript runs in the renderer process—the same place
         the website's JavaScript runs. This is why you can access <code>document</code>, <code>window</code>, and the
@@ -748,7 +755,7 @@ Mutations observed: ['childList']
         <tbody>
             <tr>
                 <td>Multi-Process Architecture</td>
-                <td>Each tab runs in isolation; crashes don't affect other tabs</td>
+                <td>Tabs can share a renderer and one tab can use several, so a new tab is not a clean session</td>
             </tr>
             <tr>
                 <td>Rendering Pipeline</td>

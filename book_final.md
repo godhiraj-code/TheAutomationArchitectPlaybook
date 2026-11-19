@@ -171,11 +171,15 @@ Modern browsers like Chrome are not a single program—they're a **collection of
 └────────────────────────────┘
 ```
 
+*Both diagrams are illustrative. They show one renderer per tab to keep the picture simple, but Chrome does not always split work that way. Chrome can also run networking and storage as separate service processes, which the diagrams leave out.*
+
 ### What This Means for Automation
 
-**Key Insight #1: Each tab is isolated**
+**Key Insight #1: A new tab is not a clean session**
 
-When you open a new browser window or tab in Selenium, you're potentially creating a new renderer process. Cookies, localStorage, and JavaScript state are shared per-origin, but memory and execution are isolated.
+Chrome does not assign exactly one renderer process per tab. Tabs can share a renderer, and frames in one tab can run in different renderers. A renderer crash affects the tabs and frames using that process.
+
+Opening another tab does not guarantee a clean test session. Tabs in one Selenium session use the same browser profile, so they share the same cookies and localStorage. JavaScript variables are not shared between tabs. One page can reach another tab's JavaScript only in special cases, such as when one page opened the other with `window.open` and both are on the same origin. See Chromium's [architecture notes](https://www.chromium.org/developers/design-documents/multi-process-architecture/) and [process model notes](https://chromium.googlesource.com/chromium/src/+/main/docs/process_model_and_site_isolation.md).
 
 **Key Insight #2: JavaScript runs in the renderer process**
 
@@ -594,7 +598,7 @@ The DOM size is what example.com returned when this was written. Your number wil
 
 | Concept | Key Takeaway |
 | --- | --- |
-| Multi-Process Architecture | Each tab runs in isolation; crashes don't affect other tabs |
+| Multi-Process Architecture | Tabs can share a renderer and one tab can use several, so a new tab is not a clean session |
 | Rendering Pipeline | HTML → DOM → CSSOM → Render Tree → Layout → Paint |
 | Event Loop | Single-threaded but async; explains why clicks don't wait |
 | Page Load Events | `load` event fires before AJAX content is ready |
