@@ -155,11 +155,6 @@ Modern browsers like Chrome are not a single program—they're a **collection of
 │  │    V8 JavaScript     │  │          │  │    V8 JavaScript     │  │
 │  │    Engine            │  │          │  │    Engine            │  │
 │  └──────────────────────┘  │          │  └──────────────────────┘  │
-    🔍 Deep Dive: V8 Bindings & The DOM Bridge
-    JavaScript doesn't "own" the DOM. The DOM lives in the C++ core of the browser engine (Blink). When you call
-        document.getElementById(), you're crossing a "bridge" from the JavaScript world (V8) to the C++
-        world. This context switching is expensive. In high-frequency automation, hundreds of these crossings occur
-        every second, creating a performance bottleneck that can look like network latency.
 └────────────────────────────┘          └────────────────────────────┘
              │
              ▼
@@ -172,6 +167,10 @@ Modern browsers like Chrome are not a single program—they're a **collection of
 ```
 
 *Both diagrams are illustrative. They show one renderer per tab to keep the picture simple, but Chrome does not always split work that way. Chrome can also run networking and storage as separate service processes, which the diagrams leave out.*
+
+**🔍 Deep Dive: V8 Bindings & The DOM Bridge**
+
+JavaScript doesn't "own" the DOM. The DOM lives in the C++ core of the browser engine (Blink). When you call `document.getElementById()`, you're crossing a "bridge" from the JavaScript world (V8) to the C++ world. This context switching is expensive. In high-frequency automation, hundreds of these crossings occur every second, creating a performance bottleneck that can look like network latency.
 
 ### What This Means for Automation
 

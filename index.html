@@ -326,11 +326,6 @@ def test_browser_smoke():
 │  │    V8 JavaScript     │  │          │  │    V8 JavaScript     │  │
 │  │    Engine            │  │          │  │    Engine            │  │
 │  └──────────────────────┘  │          │  └──────────────────────┘  │
-    🔍 Deep Dive: V8 Bindings &amp; The DOM Bridge
-    JavaScript doesn't "own" the DOM. The DOM lives in the C++ core of the browser engine (Blink). When you call
-        document.getElementById(), you're crossing a "bridge" from the JavaScript world (V8) to the C++
-        world. This context switching is expensive. In high-frequency automation, hundreds of these crossings occur
-        every second, creating a performance bottleneck that can look like network latency.
 └────────────────────────────┘          └────────────────────────────┘
              │
              ▼
@@ -342,6 +337,11 @@ def test_browser_smoke():
 └────────────────────────────┘
 </code></pre>
     <p><em>Both diagrams are illustrative. They show one renderer per tab to keep the picture simple, but Chrome does not always split work that way. Chrome can also run networking and storage as separate service processes, which the diagrams leave out.</em></p>
+    <p><strong>🔍 Deep Dive: V8 Bindings &amp; The DOM Bridge</strong></p>
+    <p>JavaScript doesn't "own" the DOM. The DOM lives in the C++ core of the browser engine (Blink). When you call
+        <code>document.getElementById()</code>, you're crossing a "bridge" from the JavaScript world (V8) to the C++
+        world. This context switching is expensive. In high-frequency automation, hundreds of these crossings occur
+        every second, creating a performance bottleneck that can look like network latency.</p>
     <h3 id="what-this-means-for-automation">What This Means for Automation</h3>
     <p><strong>Key Insight #1: A new tab is not a clean session</strong></p>
     <p>Chrome does not assign exactly one renderer process per tab. Tabs can share a renderer, and frames in one tab
